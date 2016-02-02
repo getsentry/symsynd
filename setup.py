@@ -10,11 +10,16 @@ setup(
     author='Sentry',
     author_email='hello@getsentry.com',
     packages=find_packages(),
+    cffi_modules=['demangler_build.py:ffi'],
     include_package_data=True,
     zip_safe=False,
     platforms='any',
     install_requires=[
         'macholib',
+        'cffi>=1.0.0',
+    ],
+    setup_requires=[
+        'cffi>=1.0.0'
     ],
     classifiers=[
         'Intended Audience :: Developers',

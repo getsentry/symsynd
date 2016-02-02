@@ -2,6 +2,8 @@
 *.pyc
 *.egg-info
 *.pex
+*.so
 .cache
+.eggs
 build
 dist

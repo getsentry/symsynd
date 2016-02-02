@@ -6,6 +6,7 @@ from threading import Lock
 
 from symsynd.utils import which
 from symsynd.mach import is_valid_cpu_name
+from symsynd.swift import demangle_symbol as demangle_swift_symbol
 
 
 devnull = open(os.path.devnull, 'a')
@@ -84,13 +85,18 @@ class Driver(object):
                 cpu_name,
                 addr,
             ))
-            function = stdout.readline().rstrip()
+            sym = stdout.readline().rstrip()
             location = stdout.readline().rstrip()
             stdout.readline()
 
         pieces = location.rsplit(':', 3)
+        sym = qm_to_none(sym)
+
+        if sym is not None:
+            sym = demangle_swift_symbol(sym) or sym
+
         return {
-            'symbol_name': qm_to_none(function.decode('utf-8')),
+            'symbol_name': sym.decode('utf-8'),
             'filename': qm_to_none(pieces[0].decode('utf-8')),
             'line': int(pieces[1]),
             'column': int(pieces[2]),

@@ -203,7 +203,11 @@ def get_macho_uuids(filename):
     rv = []
     bin = MachO(filename)
     for header in bin.headers:
+        cpu = get_cpu_name(header.header.cputype,
+                           header.header.cpusubtype)
+        if cpu is None:
+            continue
         for cmd in header.commands:
             if type(cmd[1]) is uuid_command:
-                rv.append(str(uuid.UUID(bytes=cmd[1].uuid)))
+                rv.append((cpu, str(uuid.UUID(bytes=cmd[1].uuid))))
     return rv

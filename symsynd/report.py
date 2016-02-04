@@ -31,7 +31,7 @@ def find_debug_images(dsym_path, binary_images):
                 continue
             full_fn = os.path.join(base, fn)
             uuids = get_macho_uuids(full_fn)
-            for uuid in uuids:
+            for _, uuid in uuids:
                 if uuid in images_to_load:
                     images[uuid] = full_fn
                     images_to_load.discard(uuid)

@@ -12,6 +12,6 @@ def test_uuid(res_path):
         'DWARF', 'Crash-Tester')
     uuids = mach.get_macho_uuids(ct_dsym_path)
     assert uuids == [
-        '8094558b-3641-36f7-ba80-a1aaabcf72da',
-        'f502dec3-e605-36fd-9b3d-7080a7c6f4fc'
+        ('armv7', '8094558b-3641-36f7-ba80-a1aaabcf72da'),
+        ('arm64', 'f502dec3-e605-36fd-9b3d-7080a7c6f4fc'),
     ]

@@ -1,0 +1,2 @@
+include MANIFEST.in Makefile LICENSE README.md
+recursive-include demangle-swift *

@@ -1,2 +1,2 @@
-include MANIFEST.in Makefile LICENSE README.md
+include MANIFEST.in Makefile LICENSE README.md demangler_build.py
 recursive-include demangle-swift *

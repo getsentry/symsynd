@@ -12,6 +12,6 @@ with open('demangle-swift/demangle-all.cpp') as source:
         '_symsynd_swift_demangler',
         source.read(),
         include_dirs=['demangle-swift'],
-        extra_compile_args=['-std=c++1y', '-stdlib=libc++'],
+        extra_compile_args=['-std=c++1y'],
         source_extension='.cpp'
     )

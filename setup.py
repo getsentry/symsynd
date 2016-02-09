@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='symsynd',
-    version='0.1.dev0',
+    version='0.1',
     url='http://github.com/getsentry/symsynd',
     description='Helps symbolicating crash dumps.',
     license='BSD',

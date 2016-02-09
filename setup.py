@@ -8,7 +8,7 @@ os.environ.setdefault('CC', 'clang')
 
 setup(
     name='symsynd',
-    version='0.1',
+    version='0.1.1',
     url='http://github.com/getsentry/symsynd',
     description='Helps symbolicating crash dumps.',
     license='BSD',

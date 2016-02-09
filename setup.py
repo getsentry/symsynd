@@ -1,4 +1,9 @@
+import os
 from setuptools import setup, find_packages
+
+
+# Build with clang if not otherwise specified.
+os.environ.setdefault('CC', 'clang')
 
 
 setup(

@@ -18,13 +18,13 @@ def find_debug_images(dsym_path, binary_images):
 
     # Step one: load images that are named by their UUID
     for uuid in list(images_to_load):
-        fn = os.path.join(base, uuid)
+        fn = os.path.join(dsym_path, uuid)
         if os.path.isfile(fn):
             images[uuid] = fn
             images_to_load.discard(uuid)
 
     # Otherwise fall back to loading images from the dsym bundle.
-    if images_to_load:
+    if images_to_load and os.path.isdir(base):
         for fn in os.listdir(base):
             # Looks like a UUID we loaded, skip it
             if fn in images:

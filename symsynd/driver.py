@@ -93,10 +93,10 @@ class Driver(object):
         sym = qm_to_none(sym)
 
         if sym is not None:
-            sym = demangle_swift_symbol(sym) or sym
+            sym = (demangle_swift_symbol(sym) or sym).decode('utf-8', 'replace')
 
         return {
-            'symbol_name': sym.decode('utf-8'),
+            'symbol_name': sym,
             'filename': qm_to_none(pieces[0].decode('utf-8')),
             'line': int(pieces[1]),
             'column': int(pieces[2]),

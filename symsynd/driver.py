@@ -41,7 +41,7 @@ def find_llvm_symbolizer():
     if p is not None:
         return p
 
-    for ver in xrange(4, 12):
+    for ver in xrange(12, 3, -1):
         p = which('llvm-symbolizer-3.%d' % ver)
         if p is not None:
             return p

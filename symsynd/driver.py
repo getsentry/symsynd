@@ -70,7 +70,7 @@ class Driver(object):
             self._proc = None
 
     def symbolize(self, dsym_path, image_vmaddr, image_addr,
-                  instruction_addr, cpu_name):
+                  instruction_addr, cpu_name, uuid=None):
         if self._proc is None:
             raise RuntimeError('Symbolizer is closed')
         if not is_valid_cpu_name(cpu_name):
@@ -100,4 +100,5 @@ class Driver(object):
             'filename': qm_to_none(pieces[0].decode('utf-8')),
             'line': int(pieces[1]),
             'column': int(pieces[2]),
+            'uuid': uuid,
         }

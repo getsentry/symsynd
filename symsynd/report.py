@@ -79,6 +79,6 @@ class ReportSymbolizer(object):
                 frame.update(self.driver.symbolize(
                     img['dsym_path'], img['image_vmaddr'],
                     img['image_addr'], frame['instruction_addr'],
-                    img['cpu_name']))
+                    img['cpu_name'], img['uuid']))
             rv.append(frame)
         return rv

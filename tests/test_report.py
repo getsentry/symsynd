@@ -17,6 +17,8 @@ def test_basic_report(res_path, driver):
             bt = rep.symbolize_backtrace(thread['backtrace']['contents'])
 
     assert bt is not None
+    import pprint
+    pprint.pprint(bt)
     assert bt == [
         {u'instruction_addr': 653426999,
          u'object_addr': 652337152,
@@ -50,7 +52,8 @@ def test_basic_report(res_path, driver):
          u'object_addr': 749568,
          u'object_name': u'Crash-Tester',
          u'symbol_addr': 749568,
-         u'symbol_name': u'-[Crasher throwUncaughtNSException]'},
+         u'symbol_name': u'-[Crasher throwUncaughtNSException]',
+         'uuid': u'8094558b-3641-36f7-ba80-a1aaabcf72da'},
         {'column': 11,
          'filename': u'/Users/karl/Projects/KSCrash/iOS/Crash-Tester/AppDelegate+UI.m',
          u'instruction_addr': 794881,
@@ -58,7 +61,8 @@ def test_basic_report(res_path, driver):
          u'object_addr': 749568,
          u'object_name': u'Crash-Tester',
          u'symbol_addr': 749568,
-         u'symbol_name': u'__32-[AppDelegate(UI) crashCommands]_block_invoke'},
+         u'symbol_name': u'__32-[AppDelegate(UI) crashCommands]_block_invoke',
+         'uuid': u'8094558b-3641-36f7-ba80-a1aaabcf72da'},
         {'column': 5,
          'filename': u'/Users/karl/Projects/KSCrash/iOS/Crash-Tester/CommandTVC.m',
          u'instruction_addr': 802133,
@@ -66,7 +70,8 @@ def test_basic_report(res_path, driver):
          u'object_addr': 749568,
          u'object_name': u'Crash-Tester',
          u'symbol_addr': 749568,
-         u'symbol_name': u'-[CommandEntry executeWithViewController:]'},
+         u'symbol_name': u'-[CommandEntry executeWithViewController:]',
+         'uuid': u'8094558b-3641-36f7-ba80-a1aaabcf72da'},
         {'column': 5,
          'filename': u'/Users/karl/Projects/KSCrash/iOS/Crash-Tester/CommandTVC.m',
          u'instruction_addr': 803225,
@@ -74,7 +79,8 @@ def test_basic_report(res_path, driver):
          u'object_addr': 749568,
          u'object_name': u'Crash-Tester',
          u'symbol_addr': 749568,
-         u'symbol_name': u'-[CommandTVC tableView:didSelectRowAtIndexPath:]'},
+         u'symbol_name': u'-[CommandTVC tableView:didSelectRowAtIndexPath:]',
+         'uuid': u'8094558b-3641-36f7-ba80-a1aaabcf72da'},
         {u'instruction_addr': 711430419,
          u'object_addr': 710225920,
          u'object_name': u'UIKit',
@@ -137,7 +143,8 @@ def test_basic_report(res_path, driver):
          u'object_addr': 749568,
          u'object_name': u'Crash-Tester',
          u'symbol_addr': 749568,
-         u'symbol_name': u'main'},
+         u'symbol_name': u'main',
+         'uuid': u'8094558b-3641-36f7-ba80-a1aaabcf72da'},
         {u'instruction_addr': 893569711,
          u'object_addr': 893562880,
          u'object_name': u'libdyld.dylib',

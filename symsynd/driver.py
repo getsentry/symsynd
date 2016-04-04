@@ -46,6 +46,8 @@ def find_llvm_symbolizer():
         if p is not None:
             return p
 
+    raise EnvironmentError('Could not locate llvm-symbolizer')
+
 
 class Driver(object):
 

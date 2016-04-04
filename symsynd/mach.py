@@ -201,7 +201,10 @@ def get_macho_uuids(filename):
     binaries within it.
     """
     rv = []
-    bin = MachO(filename)
+    try:
+        bin = MachO(filename)
+    except Exception:
+        return None
     for header in bin.headers:
         cpu = get_cpu_name(header.header.cputype,
                            header.header.cpusubtype)

@@ -8,11 +8,11 @@ import tempfile
 import subprocess
 
 from symsynd.utils import which, progressbar
-from symsynd.mach import get_macho_uuids
+from symsynd.macho.arch import get_macho_uuids
+from symsynd.macho.util import is_macho_file
 from symsynd.driver import devnull
 
 
-_arch_intro_re = re.compile(r'^.*? \(for architecture (.*?)\):$')
 _base_path_segment = re.compile(r'^\d+\.\d+ \([a-zA-Z0-9]+\)$')
 
 
@@ -54,6 +54,14 @@ def chop_symbol_path(path):
     return '/'.join(items)
 
 
+def parse_nm_line(line):
+    line = line.rstrip()
+    # This is a line without location, just skip it
+    if not line or line[:1] == ' ':
+        return
+    return line.split(' ', 2)
+
+
 class BulkExtractor(object):
 
     def __init__(self, nm_path=None):
@@ -62,37 +70,32 @@ class BulkExtractor(object):
         self.nm_path = nm_path
 
     def process_file(self, filename):
-        arch_to_uuid = dict(get_macho_uuids(filename) or ())
-        if not arch_to_uuid:
+        if not is_macho_file(filename):
             return
+
+        arch_to_uuid = dict(get_macho_uuids(filename))
+
         def generate():
-            args = [self.nm_path, '-numeric-sort', filename]
-            c = subprocess.Popen(args, stdout=subprocess.PIPE,
-                                 stderr=devnull)
-            try:
-                arch = None
-                while 1:
-                    line = c.stdout.readline()
-                    if not line:
-                        break
-                    line = line.strip()
-                    if not line:
-                        continue
-                    match = _arch_intro_re.match(line)
-                    if match is not None:
-                        arch = match.group(1)
-                        continue
-                    if arch is None:
-                        continue
-                    items = line.split(' ', 2)
-                    if items[1] in 'tT':
-                        yield (arch, arch_to_uuid[arch], int(items[0], 16),
-                               items[2])
-            finally:
+            for arch, uuid in arch_to_uuid.iteritems():
+                args = [self.nm_path, '-numeric-sort', filename,
+                        '-arch', arch]
+                c = subprocess.Popen(args, stdout=subprocess.PIPE,
+                                     stderr=devnull)
                 try:
-                    c.kill()
-                except Exception:
-                    pass
+                    while 1:
+                        line = c.stdout.readline()
+                        if not line:
+                            break
+                        items = parse_nm_line(line)
+                        if items is None:
+                            continue
+                        if items[1] in 'tT':
+                            yield (arch, uuid, int(items[0], 16), items[2])
+                finally:
+                    try:
+                        c.kill()
+                    except Exception:
+                        pass
         return generate()
 
     def process_directory(self, base, log):
@@ -131,15 +134,23 @@ class BulkExtractor(object):
                                 yield (chop_symbol_path(member),) + tup
 
     def build_symbol_archive(self, base, archive_file, log=False):
-        f = zipfile.ZipFile(archive_file, 'w',
-                            compression=zipfile.ZIP_DEFLATED)
+        _archive = []
+
+        def _get_archive():
+            if _archive:
+                return _archive[0]
+            f = zipfile.ZipFile(archive_file, 'w',
+                                compression=zipfile.ZIP_DEFLATED)
+            _archive.append(f)
+            return f
+
         uuids_seen = set()
         path_index = {}
 
-        with f:
-            last_object = None
-            buf = []
+        last_object = None
+        buf = []
 
+        try:
             def _dump_buf():
                 image, arch, uuid = last_object
                 if uuid not in uuids_seen:
@@ -150,7 +161,7 @@ class BulkExtractor(object):
                         'uuid': uuid,
                         'symbols': buf,
                     }, separators=(',', ':'))
-                    f.writestr(uuid, data)
+                    _get_archive().writestr(uuid, data)
                     path_info = path_index.setdefault(image, {})
                     path_info[arch] = uuid
                 del buf[:]
@@ -169,5 +180,8 @@ class BulkExtractor(object):
                 _dump_buf()
 
             if path_index:
-                f.writestr('path_index', json.dumps(
+                _get_archive().writestr('path_index', json.dumps(
                     path_index, separators=(',', ':')))
+        finally:
+            if _archive:
+                _archive[0].close()

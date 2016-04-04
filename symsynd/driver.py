@@ -5,7 +5,7 @@ import subprocess
 from threading import Lock
 
 from symsynd.utils import which
-from symsynd.mach import is_valid_cpu_name
+from symsynd.macho.arch import is_valid_cpu_name
 from symsynd.swift import demangle_symbol as demangle_swift_symbol
 
 

@@ -1,6 +1,6 @@
 import os
 
-from symsynd.mach import get_cpu_name, get_macho_uuids
+from symsynd.macho.arch import get_cpu_name, get_macho_uuids
 
 
 def find_debug_images(dsym_paths, binary_images):

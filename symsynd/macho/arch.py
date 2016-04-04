@@ -1,6 +1,6 @@
 import uuid
-from macholib.MachO import MachO
-from macholib.mach_o import uuid_command
+from .header import MachO
+from .mtypes import uuid_command
 
 
 CPU_ARCH_MASK = 0xff000000
@@ -201,10 +201,7 @@ def get_macho_uuids(filename):
     binaries within it.
     """
     rv = []
-    try:
-        bin = MachO(filename)
-    except Exception:
-        return None
+    bin = MachO(filename)
     for header in bin.headers:
         cpu = get_cpu_name(header.header.cputype,
                            header.header.cpusubtype)

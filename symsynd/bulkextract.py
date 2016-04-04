@@ -7,7 +7,7 @@ import zipfile
 import tempfile
 import subprocess
 
-from symsynd.utils import which
+from symsynd.utils import which, progressbar
 from symsynd.mach import get_macho_uuids
 from symsynd.driver import devnull
 
@@ -95,31 +95,40 @@ class BulkExtractor(object):
                     pass
         return generate()
 
-    def process_directory(self, base):
+    def process_directory(self, base, log):
         base = os.path.normpath(os.path.abspath(base))
 
+        paths = []
         for dirpath, dirnames, filenames in os.walk(base):
             for filename in filenames:
                 path = os.path.join(base, dirpath, filename)
+                paths.append(path)
+
+        with progressbar(paths, prefix=os.path.basename(base),
+                         enabled=log) as bar:
+            for path in bar:
                 local_path = path[len(base) + 1:]
                 iter = self.process_file(path)
                 if iter is not None:
                     for tup in iter:
                         yield (chop_symbol_path(local_path),) + tup
 
-    def process_archive(self, filename):
+    def process_archive(self, filename, log=False):
         f = zipfile.ZipFile(filename)
 
-        for member in f.namelist():
-            if member.endswith('/'):
-                continue
-            with tempfile.NamedTemporaryFile() as df:
-                with f.open(member) as sf:
-                    shutil.copyfileobj(sf, df)
-                    iter = self.process_file(df.name)
-                    if iter is not None:
-                        for tup in iter:
-                            yield (chop_symbol_path(member),) + tup
+        prefix = os.path.basename(filename).rsplit('.', 1)[0]
+
+        with progressbar(f.namelist(), prefix=prefix, enabled=log) as bar:
+            for member in bar:
+                if member.endswith('/'):
+                    continue
+                with tempfile.NamedTemporaryFile() as df:
+                    with f.open(member) as sf:
+                        shutil.copyfileobj(sf, df)
+                        iter = self.process_file(df.name)
+                        if iter is not None:
+                            for tup in iter:
+                                yield (chop_symbol_path(member),) + tup
 
     def build_symbol_archive(self, base, archive_file, log=False):
         f = zipfile.ZipFile(archive_file, 'w',
@@ -134,8 +143,6 @@ class BulkExtractor(object):
             def _dump_buf():
                 image, arch, uuid = last_object
                 if uuid not in uuids_seen:
-                    if log:
-                        print '%s %-10s %s' % (uuid, arch, image)
                     uuids_seen.add(uuid)
                     data = json.dumps({
                         'arch': arch,
@@ -149,9 +156,9 @@ class BulkExtractor(object):
                 del buf[:]
 
             if os.path.isdir(base):
-                iter = self.process_directory(base)
+                iter = self.process_directory(base, log=log)
             else:
-                iter = self.process_archive(base)
+                iter = self.process_archive(base, log=log)
             for tup in iter:
                 if last_object is None or last_object != tup[:3]:
                     if buf:
@@ -161,5 +168,6 @@ class BulkExtractor(object):
             if buf:
                 _dump_buf()
 
-            f.writestr('path_index', json.dumps(
-                path_index, separators=(',', ':')))
+            if path_index:
+                f.writestr('path_index', json.dumps(
+                    path_index, separators=(',', ':')))

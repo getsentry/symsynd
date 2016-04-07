@@ -224,4 +224,5 @@ def get_macho_uuids(filename):
     """Given the filename to a mach-o file this returns the UUIDs for the
     binaries within it.
     """
-    return [(x['cpu_name'], x['uuid']) for x in get_macho_image_info()]
+    return [(x['cpu_name'], x['uuid']) for x in
+            get_macho_image_info(filename)]

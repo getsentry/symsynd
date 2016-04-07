@@ -8,12 +8,12 @@ import tempfile
 import subprocess
 
 from symsynd.utils import which, progressbar
-from symsynd.macho.arch import get_macho_uuids
+from symsynd.macho.arch import get_macho_image_info
 from symsynd.macho.util import is_macho_file
 from symsynd.driver import devnull
 
 
-_base_path_segment = re.compile(r'^\d+\.\d+ \([a-zA-Z0-9]+\)$')
+_base_path_segment = re.compile(r'^(\d+)\.(\d+)(?:\.(\d+))? \(([a-zA-Z0-9]+)\)$')
 
 
 NM_SEARCHPATHS = []
@@ -51,7 +51,23 @@ def chop_symbol_path(path):
         items = items[1:]
     if items and items[0] == 'Symbols':
         items = items[1:]
-    return '/'.join(items)
+    return '/' + '/'.join(items).strip('/')
+
+
+def get_sdk_info_from_path(path):
+    pieces = path.split('/')[::-1]
+    for piece in pieces:
+        if piece.endswith('.zip'):
+            piece = piece[:-4]
+        match = _base_path_segment.match(piece)
+        if match is not None:
+            tup = match.groups()
+            return {
+                'version_major': int(tup[0]),
+                'version_minor': int(tup[1]),
+                'version_patchlevel': int(tup[2] or 0),
+                'version_build': tup[3],
+            }
 
 
 def parse_nm_line(line):
@@ -73,10 +89,10 @@ class BulkExtractor(object):
         if not is_macho_file(filename):
             return
 
-        arch_to_uuid = dict(get_macho_uuids(filename))
+        images = dict((x['cpu_name'], x) for x in get_macho_image_info(filename))
 
         def generate():
-            for arch, uuid in arch_to_uuid.iteritems():
+            for arch, info in images.iteritems():
                 args = [self.nm_path, '-numeric-sort', filename,
                         '-arch', arch]
                 c = subprocess.Popen(args, stdout=subprocess.PIPE,
@@ -90,7 +106,12 @@ class BulkExtractor(object):
                         if items is None:
                             continue
                         if items[1] in 'tT':
-                            yield (arch, uuid, int(items[0], 16), items[2])
+                            symbol = items[2]
+                            # Chop off leading underscore from symbols if
+                            # it's there.
+                            if symbol[:1] == '_':
+                                symbol = symbol[1:]
+                            yield arch, info, int(items[0], 16), symbol
                 finally:
                     try:
                         c.kill()
@@ -136,6 +157,11 @@ class BulkExtractor(object):
     def build_symbol_archive(self, base, archive_file, log=False):
         _archive = []
 
+        sdk_info = get_sdk_info_from_path(
+            os.path.normpath(os.path.abspath(base)))
+        if sdk_info is None:
+            raise RuntimeError('Could not parse SDK info from path')
+
         def _get_archive():
             if _archive:
                 return _archive[0]
@@ -152,18 +178,20 @@ class BulkExtractor(object):
 
         try:
             def _dump_buf():
-                image, arch, uuid = last_object
-                if uuid not in uuids_seen:
-                    uuids_seen.add(uuid)
+                image, arch, info = last_object
+                if info['uuid'] not in uuids_seen:
+                    uuids_seen.add(info['uuid'])
                     data = json.dumps({
                         'arch': arch,
                         'image': image,
-                        'uuid': uuid,
+                        'uuid': info['uuid'],
+                        'vmaddr': info.get('vmaddr'),
+                        'vmsize': info.get('vmsize'),
                         'symbols': buf,
                     }, separators=(',', ':'))
-                    _get_archive().writestr(uuid, data)
+                    _get_archive().writestr(info['uuid'], data)
                     path_info = path_index.setdefault(image, {})
-                    path_info[arch] = uuid
+                    path_info[arch] = info['uuid']
                 del buf[:]
 
             if os.path.isdir(base):
@@ -182,6 +210,8 @@ class BulkExtractor(object):
             if path_index:
                 _get_archive().writestr('path_index', json.dumps(
                     path_index, separators=(',', ':')))
+                _get_archive().writestr('sdk_info', json.dumps(
+                    sdk_info, separators=(',', ':')))
         finally:
             if _archive:
                 _archive[0].close()

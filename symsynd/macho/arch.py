@@ -1,6 +1,6 @@
 import uuid
 from .header import MachO
-from .mtypes import uuid_command
+from .mtypes import uuid_command, segment_command
 
 
 CPU_ARCH_MASK = 0xff000000
@@ -196,9 +196,10 @@ def is_valid_cpu_name(name):
     return name in VALID_CPU_NAMES
 
 
-def get_macho_uuids(filename):
+def get_macho_image_info(filename):
     """Given the filename to a mach-o file this returns the UUIDs for the
-    binaries within it.
+    binaries within it as well as a basic breakdown of information related
+    to the images.
     """
     rv = []
     bin = MachO(filename)
@@ -207,7 +208,20 @@ def get_macho_uuids(filename):
                            header.header.cpusubtype)
         if cpu is None:
             continue
+        d = {'cpu_name': cpu}
         for cmd in header.commands:
             if type(cmd[1]) is uuid_command:
-                rv.append((cpu, str(uuid.UUID(bytes=cmd[1].uuid))))
+                d['uuid'] = str(uuid.UUID(bytes=cmd[1].uuid))
+            elif (type(cmd[1]) is segment_command and
+                  cmd[1].segname.strip('\x00') == '__TEXT'):
+                d['vmaddr'] = cmd[1].vmaddr
+                d['vmsize'] = cmd[1].vmsize
+        rv.append(d)
     return rv
+
+
+def get_macho_uuids(filename):
+    """Given the filename to a mach-o file this returns the UUIDs for the
+    binaries within it.
+    """
+    return [(x['cpu_name'], x['uuid']) for x in get_macho_image_info()]

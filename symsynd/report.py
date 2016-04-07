@@ -70,15 +70,23 @@ class ReportSymbolizer(object):
         self.driver = driver
         self.images = find_debug_images(dsym_paths, binary_images)
 
+    def symbolize_frame(self, frame):
+        img = self.images.get(frame['object_addr'])
+        if img is not None:
+            rv = self.driver.symbolize(
+                img['dsym_path'], img['image_vmaddr'],
+                img['image_addr'], frame['instruction_addr'],
+                img['cpu_name'], img['uuid'])
+
+            # Only return this if we found the symbol
+            if rv['symbol_name'] is not None:
+                frame = dict(frame)
+                frame.update(rv)
+                return frame
+
     def symbolize_backtrace(self, backtrace):
         rv = []
         for frame in backtrace:
-            frame = dict(frame)
-            img = self.images.get(frame['object_addr'])
-            if img is not None:
-                frame.update(self.driver.symbolize(
-                    img['dsym_path'], img['image_vmaddr'],
-                    img['image_addr'], frame['instruction_addr'],
-                    img['cpu_name'], img['uuid']))
-            rv.append(frame)
+            new_frame = self.symbolize_frame(frame)
+            rv.append(new_frame or frame)
         return rv

@@ -6,7 +6,7 @@ from threading import Lock
 
 from symsynd.utils import which
 from symsynd.macho.arch import is_valid_cpu_name
-from symsynd.swift import demangle_symbol as demangle_swift_symbol
+from symsynd.demangle import demangle_symbol
 
 
 devnull = open(os.path.devnull, 'a')
@@ -95,7 +95,7 @@ class Driver(object):
         sym = qm_to_none(sym)
 
         if sym is not None:
-            sym = (demangle_swift_symbol(sym) or sym).decode('utf-8', 'replace')
+            sym = (demangle_symbol(sym) or sym).decode('utf-8', 'replace')
 
         return {
             'symbol_name': sym,

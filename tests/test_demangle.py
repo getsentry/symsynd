@@ -1,4 +1,4 @@
-from symsynd.swift import demangle_symbol
+from symsynd.demangle import demangle_swift_symbol, demangle_cpp_symbol
 
 
 def test_swift_demangle():
@@ -7,14 +7,20 @@ def test_swift_demangle():
         'Swift_Tester.ViewController.doSomething '
         '(Swift_Tester.ViewController) -> () -> ()'
     )
-    assert demangle_symbol(mangled) == expected
+    assert demangle_swift_symbol(mangled) == expected
+
+
+def test_cpp_demangle():
+    mangled = '_ZN6google8protobuf2io25CopyingInputStreamAdaptor4SkipEi'
+    expected = 'google::protobuf::io::CopyingInputStreamAdaptor::Skip(int)'
+    assert demangle_cpp_symbol(mangled) == expected
 
 
 def test_demangle_failure_underscore():
     mangled = '_some_name'
-    assert demangle_symbol(mangled) is None
+    assert demangle_swift_symbol(mangled) is None
 
 
 def test_demangle_failure_no_underscore():
     mangled = 'some_other_name'
-    assert demangle_symbol(mangled) is None
+    assert demangle_swift_symbol(mangled) is None

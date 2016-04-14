@@ -8,9 +8,11 @@ def _make_buffer():
 def _demangle(func, sym, buffer=None):
     if buffer is None:
         buffer = _make_buffer()
+    if isinstance(sym, unicode):
+        sym = sym.encode('utf-8')
     rv = func(sym, buffer, len(buffer))
     if rv:
-        return ffi.string(buffer)
+        return ffi.string(buffer).decode('utf-8', 'replace')
 
 
 def demangle_swift_symbol(symbol):

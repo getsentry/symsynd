@@ -54,7 +54,7 @@ def chop_symbol_path(path):
     return '/' + '/'.join(items).strip('/')
 
 
-def get_sdk_info_from_path(path):
+def get_sdk_info_from_path(sdk_name, path):
     pieces = path.split('/')[::-1]
     for piece in pieces:
         if piece.endswith('.zip'):
@@ -63,6 +63,8 @@ def get_sdk_info_from_path(path):
         if match is not None:
             tup = match.groups()
             return {
+                'sdk_name': sdk_name,
+                'dsym_type': 'macho',
                 'version_major': int(tup[0]),
                 'version_minor': int(tup[1]),
                 'version_patchlevel': int(tup[2] or 0),
@@ -154,10 +156,11 @@ class BulkExtractor(object):
                             for tup in iter:
                                 yield (chop_symbol_path(member),) + tup
 
-    def build_symbol_archive(self, base, archive_file, log=False):
+    def build_symbol_archive(self, base, archive_file, sdk,
+                             log=False):
         _archive = []
 
-        sdk_info = get_sdk_info_from_path(
+        sdk_info = get_sdk_info_from_path(sdk,
             os.path.normpath(os.path.abspath(base)))
         if sdk_info is None:
             raise RuntimeError('Could not parse SDK info from path')

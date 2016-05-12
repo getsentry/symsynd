@@ -1,10 +1,18 @@
 import os
 import sys
+import click
 from symsynd.bulkextract import BulkExtractor
 
 
-ex = BulkExtractor()
-for filename in sys.argv[1:]:
-    dst = os.path.basename(filename)
-    if not os.path.isfile(dst):
-        ex.build_symbol_archive(filename, dst, sdk='iOS', log=True)
+@click.command()
+@click.option('--sdk', default='iOS')
+@click.argument('files', nargs=-1, type=click.Path())
+def cli(sdk, files):
+    ex = BulkExtractor()
+    for filename in files:
+        dst = os.path.basename(filename) + '.zip'
+        if not os.path.isfile(dst):
+            ex.build_symbol_archive(filename, dst, sdk=sdk, log=True)
+
+
+cli()

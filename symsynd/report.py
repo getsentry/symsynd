@@ -70,13 +70,13 @@ class ReportSymbolizer(object):
         self.driver = driver
         self.images = find_debug_images(dsym_paths, binary_images)
 
-    def symbolize_frame(self, frame):
+    def symbolize_frame(self, frame, silent=True):
         img = self.images.get(frame['object_addr'])
         if img is not None:
             rv = self.driver.symbolize(
                 img['dsym_path'], img['image_vmaddr'],
                 img['image_addr'], frame['instruction_addr'],
-                img['cpu_name'], img['uuid'])
+                img['cpu_name'], img['uuid'], silent=silent)
 
             # Only return this if we found the symbol
             if rv['symbol_name'] is not None:

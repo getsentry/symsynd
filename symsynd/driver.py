@@ -17,6 +17,10 @@ if sys.platform == 'darwin':
     SYMBOLIZER_SEARCHPATHS.append('/usr/local/opt/llvm/bin')
 
 
+class SymbolicationError(Exception):
+    pass
+
+
 def qm_to_none(value):
     if value == '??':
         return None
@@ -86,7 +90,7 @@ class Driver(object):
             return self._proc
 
     def symbolize(self, dsym_path, image_vmaddr, image_addr,
-                  instruction_addr, cpu_name, uuid=None):
+                  instruction_addr, cpu_name, uuid=None, silent=True):
         if self._closed:
             raise RuntimeError('Symbolizer is closed')
         if not is_valid_cpu_name(cpu_name):
@@ -107,6 +111,9 @@ class Driver(object):
             # empty results back here.
             if not all(results):
                 self.kill()
+                if not silent:
+                    raise SymbolicationError('Symbolizer crashed. '
+                                             'Bad debug symbols?')
                 sym = '??'
                 location = '??:0:0'
             else:
@@ -118,6 +125,8 @@ class Driver(object):
 
         if sym is not None:
             sym = (demangle_symbol(sym) or sym).decode('utf-8', 'replace')
+        elif not silent:
+            raise SymbolicationError('Symbolizer could not find symbol')
 
         return {
             'symbol_name': sym,

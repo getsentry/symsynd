@@ -10,7 +10,7 @@ from symsynd.bulkextract import BulkExtractor
 def cli(sdk, files):
     ex = BulkExtractor()
     for filename in files:
-        dst = os.path.basename(filename) + '.zip'
+        dst = os.path.basename(filename).rstrip('/') + '.zip'
         if not os.path.isfile(dst):
             ex.build_symbol_archive(filename, dst, sdk=sdk, log=True)
 

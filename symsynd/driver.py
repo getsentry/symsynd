@@ -41,7 +41,7 @@ def find_llvm_symbolizer():
     if p:
         return p
 
-    p = which('llvm-symbolizer', extra_paths=SYMBOLIZER_SEARCHPATHS)
+    p = which('llvm-symbolizer')
     if p is not None:
         return p
 
@@ -49,6 +49,10 @@ def find_llvm_symbolizer():
         p = which('llvm-symbolizer-3.%d' % ver)
         if p is not None:
             return p
+
+    p = which('llvm-symbolizer')
+    if p is not None:
+        return p
 
     raise EnvironmentError('Could not locate llvm-symbolizer')
 

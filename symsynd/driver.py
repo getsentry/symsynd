@@ -4,7 +4,7 @@ import errno
 import subprocess
 from threading import RLock
 
-from symsynd.utils import which
+from symsynd.utils import which, parse_addr
 from symsynd.macho.arch import is_valid_cpu_name
 from symsynd.demangle import demangle_symbol
 
@@ -100,6 +100,10 @@ class Driver(object):
         if not is_valid_cpu_name(cpu_name):
             raise ValueError('"%s" is not a valid cpu name' % cpu_name)
         dsym_path = normalize_dsym_path(dsym_path)
+
+        image_vmaddr = parse_addr(image_vmaddr)
+        image_addr = parse_addr(image_addr)
+        instruction_addr = parse_addr(instruction_addr)
 
         addr = image_vmaddr + instruction_addr - image_addr
         with self._lock:

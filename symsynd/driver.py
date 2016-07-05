@@ -108,30 +108,42 @@ class Driver(object):
         addr = image_vmaddr + instruction_addr - image_addr
 
         try:
-            with self._lock:
-                proc = self.get_proc()
-                proc.stdin.write('"%s:%s" 0x%x\n' % (
-                    dsym_path,
-                    cpu_name,
-                    addr,
-                ))
-                results = [proc.stdout.readline() for x in range(3)]
-        except Exception:
-            self.kill()
-            raise
+            try:
+                with self._lock:
+                    input_command = '"%s:%s" 0x%x\n' % (
+                        dsym_path,
+                        cpu_name,
+                        addr,
+                    )
+                    proc = self.get_proc()
+                    proc.stdin.write(input_command)
+                    proc.stdin.flush()
 
-        # Make sure we did not crash.  In that case we might get
-        # empty results back here.
-        if not all(results):
-            self.kill()
+                    sym_resp = proc.stdout.readline()
+                    if sym_resp == input_command:
+                        raise SymbolicationError('Symbolizer echoed garbage.')
+
+                    sym_resp = proc.stdout.readline()
+                    location_resp = proc.stdout.readline()
+                    empty_line = proc.stdout.readline()
+
+                    if not all([sym_resp, location_resp, empty_line]):
+                        raise SymbolicationError('Symbolizer crashed.')
+                    if empty_line.strip():
+                        raise SymbolicationError('Symbolizer produced '
+                                                 'extra garbage: %r' %
+                                                 empty_line)
+            except Exception:
+                self.kill()
+                raise
+        except SymbolicationError:
             if not silent:
-                raise SymbolicationError('Symbolizer crashed. '
-                                         'Bad debug symbols?')
+                raise
             sym = '??'
             location = '??:0:0'
         else:
-            sym = results[0].rstrip()
-            location = results[1].rstrip()
+            sym = sym_resp.rstrip()
+            location = location_resp.rstrip()
 
         pieces = location.rsplit(':', 3)
         sym = qm_to_none(sym)

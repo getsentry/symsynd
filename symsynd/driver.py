@@ -106,27 +106,32 @@ class Driver(object):
         instruction_addr = parse_addr(instruction_addr)
 
         addr = image_vmaddr + instruction_addr - image_addr
-        with self._lock:
-            proc = self.get_proc()
-            proc.stdin.write('"%s:%s" 0x%x\n' % (
-                dsym_path,
-                cpu_name,
-                addr,
-            ))
-            results = [proc.stdout.readline() for x in range(3)]
 
-            # Make sure we did not crash.  In that case we might get
-            # empty results back here.
-            if not all(results):
-                self.kill()
-                if not silent:
-                    raise SymbolicationError('Symbolizer crashed. '
-                                             'Bad debug symbols?')
-                sym = '??'
-                location = '??:0:0'
-            else:
-                sym = results[0].rstrip()
-                location = results[1].rstrip()
+        try:
+            with self._lock:
+                proc = self.get_proc()
+                proc.stdin.write('"%s:%s" 0x%x\n' % (
+                    dsym_path,
+                    cpu_name,
+                    addr,
+                ))
+                results = [proc.stdout.readline() for x in range(3)]
+        except Exception:
+            self.kill()
+            raise
+
+        # Make sure we did not crash.  In that case we might get
+        # empty results back here.
+        if not all(results):
+            self.kill()
+            if not silent:
+                raise SymbolicationError('Symbolizer crashed. '
+                                         'Bad debug symbols?')
+            sym = '??'
+            location = '??:0:0'
+        else:
+            sym = results[0].rstrip()
+            location = results[1].rstrip()
 
         pieces = location.rsplit(':', 3)
         sym = qm_to_none(sym)

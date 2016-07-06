@@ -123,7 +123,6 @@ class Driver(object):
                     if sym_resp == input_command:
                         raise SymbolicationError('Symbolizer echoed garbage.')
 
-                    sym_resp = proc.stdout.readline()
                     location_resp = proc.stdout.readline()
                     empty_line = proc.stdout.readline()
 

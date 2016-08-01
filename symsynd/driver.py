@@ -1,3 +1,5 @@
+from __future__ import absolute_import, print_function, unicode_literals
+
 import os
 import sys
 import errno
@@ -45,7 +47,7 @@ def find_llvm_symbolizer():
     if p is not None:
         return p
 
-    for ver in xrange(12, 3, -1):
+    for ver in range(12, 3, -1):
         p = which('llvm-symbolizer-3.%d' % ver)
         if p is not None:
             return p

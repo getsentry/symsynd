@@ -1,11 +1,15 @@
+from __future__ import absolute_import, print_function, unicode_literals
+
 import subprocess
+
 from cffi import FFI
 
 ffi = FFI()
 ffi.cdef(subprocess.Popen([
     'cc', '-E', '-DDM_NOINCLUDE',
     'demangle/demangle.h'],
-    stdout=subprocess.PIPE).communicate()[0])
+    stdout=subprocess.PIPE
+).communicate()[0].decode('utf-8'))
 
 with open('demangle/demangle-all.cpp') as source:
     ffi.set_source(

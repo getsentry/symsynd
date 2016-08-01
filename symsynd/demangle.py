@@ -1,4 +1,8 @@
+from __future__ import absolute_import, print_function, unicode_literals
+
 from _symsynd_demangler import ffi, lib
+
+unicode = type(u'')
 
 
 def _make_buffer():

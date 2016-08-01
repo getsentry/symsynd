@@ -1,3 +1,5 @@
+from __future__ import absolute_import, print_function, unicode_literals
+
 from symsynd.demangle import demangle_swift_symbol, demangle_cpp_symbol
 
 

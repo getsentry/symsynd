@@ -1,4 +1,7 @@
+from __future__ import absolute_import, print_function, unicode_literals
+
 import uuid
+
 from .header import MachO
 from .mtypes import uuid_command, segment_command
 
@@ -213,7 +216,7 @@ def get_macho_image_info(filename):
             if type(cmd[1]) is uuid_command:
                 d['uuid'] = str(uuid.UUID(bytes=cmd[1].uuid))
             elif (type(cmd[1]) is segment_command and
-                  cmd[1].segname.strip('\x00') == '__TEXT'):
+                  cmd[1].segname.decode('utf-8').strip('\x00') == '__TEXT'):
                 d['vmaddr'] = cmd[1].vmaddr
                 d['vmsize'] = cmd[1].vmsize
         rv.append(d)

@@ -5,7 +5,7 @@ import subprocess
 from threading import RLock
 
 from symsynd.utils import which, parse_addr
-from symsynd.macho.arch import is_valid_cpu_name
+from symsynd.macho.arch import is_valid_cpu_name, get_macho_vmaddr
 from symsynd.demangle import demangle_symbol
 
 
@@ -102,6 +102,9 @@ class Driver(object):
         dsym_path = normalize_dsym_path(dsym_path)
 
         image_vmaddr = parse_addr(image_vmaddr)
+        if not image_vmaddr:
+            image_vmaddr = get_macho_vmaddr(dsym_path, cpu_name) or 0
+
         image_addr = parse_addr(image_addr)
         instruction_addr = parse_addr(instruction_addr)
 

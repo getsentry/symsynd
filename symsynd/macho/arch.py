@@ -1,6 +1,6 @@
 import uuid
 from .header import MachO
-from .mtypes import uuid_command, segment_command
+from .mtypes import uuid_command, segment_command, segment_command_64
 
 
 CPU_ARCH_MASK = 0xff000000
@@ -212,12 +212,20 @@ def get_macho_image_info(filename):
         for cmd in header.commands:
             if type(cmd[1]) is uuid_command:
                 d['uuid'] = str(uuid.UUID(bytes=cmd[1].uuid))
-            elif (type(cmd[1]) is segment_command and
+            elif (type(cmd[1]) in (segment_command,
+                                   segment_command_64) and
                   cmd[1].segname.strip('\x00') == '__TEXT'):
                 d['vmaddr'] = cmd[1].vmaddr
                 d['vmsize'] = cmd[1].vmsize
         rv.append(d)
     return rv
+
+
+def get_macho_vmaddr(filename, cpu_name):
+    for info in get_macho_image_info(filename):
+        if info['cpu_name'] == cpu_name:
+            if 'vmaddr' in info:
+                return info['vmaddr']
 
 
 def get_macho_uuids(filename):

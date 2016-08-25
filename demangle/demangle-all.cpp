@@ -2,9 +2,17 @@
 #include "swift/Basic/Demangle.h"
 #include <cxxabi.h>
 
-int demangle_swift(const char *symbol, char *buffer, size_t buffer_length)
+int _demangle_swift(
+    const char *symbol, char *buffer, size_t buffer_length, int simplified)
 {
-    std::string demangled = swift::Demangle::demangleSymbolAsString(symbol);
+    swift::Demangle::DemangleOptions options;
+    if (simplified) {
+        options =
+            swift::Demangle::DemangleOptions::SimplifiedUIDemangleOptions();
+    }
+
+    std::string demangled =
+        swift::Demangle::demangleSymbolAsString(symbol, options);
 
     if (demangled.size() == 0 || demangled.size() >= buffer_length) {
         return false;
@@ -13,6 +21,17 @@ int demangle_swift(const char *symbol, char *buffer, size_t buffer_length)
     memcpy(buffer, demangled.c_str(), demangled.size());
     buffer[demangled.size()] = '\0';
     return true;
+}
+
+int demangle_swift(const char *symbol, char *buffer, size_t buffer_length)
+{
+    return _demangle_swift(symbol, buffer, buffer_length, 0);
+}
+
+int demangle_swift_simplified(
+    const char *symbol, char *buffer, size_t buffer_length)
+{
+    return _demangle_swift(symbol, buffer, buffer_length, 1);
 }
 
 int demangle_cpp(const char *symbol, char *buffer, size_t buffer_length)

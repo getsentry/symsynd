@@ -7,6 +7,7 @@ from threading import RLock
 from symsynd.utils import which, parse_addr
 from symsynd.macho.arch import is_valid_cpu_name, get_macho_vmaddr
 from symsynd.demangle import demangle_symbol
+from symsynd.exceptions import SymbolicationError
 
 
 devnull = open(os.path.devnull, 'a')
@@ -15,10 +16,6 @@ devnull = open(os.path.devnull, 'a')
 SYMBOLIZER_SEARCHPATHS = []
 if sys.platform == 'darwin':
     SYMBOLIZER_SEARCHPATHS.append('/usr/local/opt/llvm/bin')
-
-
-class SymbolicationError(Exception):
-    pass
 
 
 def qm_to_none(value):

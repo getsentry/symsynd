@@ -1,6 +1,7 @@
 #!/bin/sh
 
 set -eu
+cd -P -- "$(dirname -- "$0")"
 
 CACHE_FLAGS="-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_OSX_ARCHITECTURES='i386;x86_64'"
 

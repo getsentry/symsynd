@@ -24,8 +24,11 @@ def demangle_cpp_symbol(symbol):
 
 
 def demangle_symbol(symbol):
+    if symbol is None:
+        return None
     buffer = _make_buffer()
     for func in lib.demangle_swift, lib.demangle_cpp:
         rv = _demangle(func, symbol, buffer)
         if rv is not None:
             return rv
+    return symbol

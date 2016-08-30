@@ -37,12 +37,13 @@ using namespace llvm;
 using namespace symbolize;
 
 template<typename T>
-static bool failed(Expected<T> &expt, llvm_symbolize_err_cb cb) {
+static bool sym_failed(Expected<T> &expt, llvm_symbol_t *sym) {
   if (expt) {
     return false;
   }
   auto msg = toString(expt.takeError());
-  cb(msg.c_str());
+  free(sym->error);
+  sym->error = strdup(msg.c_str());
   return true;
 }
 
@@ -110,30 +111,46 @@ llvm_symbolizer_free(llvm_symbolizer_t *sym)
     free(sym);
 }
 
-int
+llvm_symbol_t *
 llvm_symbolizer_symbolize(
     llvm_symbolizer_t *self,
-    llvm_symbolize_cb cb,
-    llvm_symbolize_err_cb err_cb,
     const char *module,
     unsigned long long offset,
     int is_data)
 {
+    llvm_symbol_t *rv = (llvm_symbol_t *)malloc(sizeof(llvm_symbol_t));
+    memset(rv, 0, sizeof(llvm_symbol_t));
+
     if (is_data) {
         auto res_or_err = self->symbolizer->symbolizeData(module, offset);
-        if (failed(res_or_err, err_cb)) {
-            return 0;
+        if (sym_failed(res_or_err, rv)) {
+            return rv;
         }
         auto res = res_or_err.get();
-        cb(res.Name.c_str(), 0, 0, 0);
+        rv->name = strdup(res.Name.c_str());
     } else {
         auto res_or_err = self->symbolizer->symbolizeCode(module, offset);
-        if (failed(res_or_err, err_cb)) {
-            return 0;
+        if (sym_failed(res_or_err, rv)) {
+            return rv;
         }
         auto res = res_or_err.get();
-        cb(res.FunctionName.c_str(), res.FileName.c_str(), res.Line, res.Column);
+        rv->name = strdup(res.FunctionName.c_str());
+        rv->filename = strdup(res.FileName.c_str());
+        rv->lineno = res.Line;
+        rv->column = res.Column;
     }
 
-    return 1;
+    return rv;
+}
+
+void
+llvm_symbol_free(llvm_symbol_t *sym)
+{
+    if (!sym) {
+        return;
+    }
+    free(sym->name);
+    free(sym->filename);
+    free(sym->error);
+    free(sym);
 }

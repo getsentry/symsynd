@@ -1,21 +1,12 @@
 import os
-import sys
 import errno
-import subprocess
 from threading import RLock
 
-from symsynd.utils import which, parse_addr
+from symsynd.utils import parse_addr
 from symsynd.macho.arch import is_valid_cpu_name, get_macho_vmaddr
 from symsynd.demangle import demangle_symbol
 from symsynd.exceptions import SymbolicationError
-
-
-devnull = open(os.path.devnull, 'a')
-
-
-SYMBOLIZER_SEARCHPATHS = []
-if sys.platform == 'darwin':
-    SYMBOLIZER_SEARCHPATHS.append('/usr/local/opt/llvm/bin')
+from symsynd.libsymbolizer import Symbolizer
 
 
 def qm_to_none(value):
@@ -33,36 +24,14 @@ def normalize_dsym_path(p):
     return p
 
 
-def find_llvm_symbolizer():
-    p = os.environ.get('LLVM_SYMBOLIZER_PATH')
-    if p:
-        return p
-
-    p = which('llvm-symbolizer')
-    if p is not None:
-        return p
-
-    for ver in xrange(12, 3, -1):
-        p = which('llvm-symbolizer-3.%d' % ver)
-        if p is not None:
-            return p
-
-    p = which('llvm-symbolizer')
-    if p is not None:
-        return p
-
-    raise EnvironmentError('Could not locate llvm-symbolizer')
-
-
 class Driver(object):
 
     def __init__(self, symbolizer_path=None):
-        if symbolizer_path is None:
-            symbolizer_path = find_llvm_symbolizer()
-        self.symbolizer_path = symbolizer_path
+        # symbolizer_path is no longer used.
         self._lock = RLock()
         self._proc = None
         self._closed = False
+        self.symbolizer = Symbolizer()
 
     def __enter__(self):
         return self
@@ -71,24 +40,9 @@ class Driver(object):
         self.close()
 
     def close(self):
+        if not self._closed:
+            self.symbolizer.close()
         self._closed = True
-        if self._proc is not None:
-            self.kill()
-
-    def kill(self):
-        self._proc.kill()
-        self._proc = None
-
-    def get_proc(self):
-        if self._proc is not None:
-            return self._proc
-        with self._lock:
-            if self._proc is None:
-                self._proc = subprocess.Popen([self.symbolizer_path],
-                                              stdin=subprocess.PIPE,
-                                              stdout=subprocess.PIPE,
-                                              stderr=devnull)
-            return self._proc
 
     def symbolize(self, dsym_path, image_vmaddr, image_addr,
                   instruction_addr, cpu_name, uuid=None, silent=True):
@@ -108,54 +62,19 @@ class Driver(object):
         addr = image_vmaddr + instruction_addr - image_addr
 
         try:
-            try:
-                with self._lock:
-                    input_command = '"%s:%s" 0x%x\n' % (
-                        dsym_path,
-                        cpu_name,
-                        addr,
-                    )
-                    proc = self.get_proc()
-                    proc.stdin.write(input_command)
-                    proc.stdin.flush()
-
-                    sym_resp = proc.stdout.readline()
-                    if sym_resp == input_command:
-                        raise SymbolicationError('Symbolizer echoed garbage.')
-
-                    location_resp = proc.stdout.readline()
-                    empty_line = proc.stdout.readline()
-
-                    if not all([sym_resp, location_resp, empty_line]):
-                        raise SymbolicationError('Symbolizer crashed.')
-                    if empty_line.strip():
-                        raise SymbolicationError('Symbolizer produced '
-                                                 'extra garbage: %r' %
-                                                 empty_line)
-            except Exception:
-                self.kill()
-                raise
+            with self._lock:
+                sym = self.symbolizer.symbolize(dsym_path, addr, cpu_name)
+            if sym[0] is None:
+                raise SymbolicationError('Symbolizer could not find symbol')
         except SymbolicationError:
             if not silent:
                 raise
-            sym = '??'
-            location = '??:0:0'
-        else:
-            sym = sym_resp.rstrip()
-            location = location_resp.rstrip()
-
-        pieces = location.rsplit(':', 3)
-        sym = qm_to_none(sym)
-
-        if sym is not None:
-            sym = (demangle_symbol(sym) or sym).decode('utf-8', 'replace')
-        elif not silent:
-            raise SymbolicationError('Symbolizer could not find symbol')
+            sym = (None, None, 0, 0)
 
         return {
-            'symbol_name': sym,
-            'filename': qm_to_none(pieces[0].decode('utf-8')),
-            'line': int(pieces[1] or '0'),
-            'column': int(pieces[2] or '0'),
+            'symbol_name': demangle_symbol(sym[0]),
+            'filename': sym[1],
+            'line': sym[2],
+            'column': sym[3],
             'uuid': uuid,
         }

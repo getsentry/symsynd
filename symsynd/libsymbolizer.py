@@ -1,41 +1,7 @@
-import ctypes
 from threading import Lock
 
 from symsynd.exceptions import SymbolicationError
-
-
-lib = ctypes.CDLL('/Users/mitsuhiko/Development/symsynd/llvm/'
-                  'build/lib/libLLVMSymbolizer.dylib')
-
-symfunc = ctypes.CFUNCTYPE(
-    None,
-    ctypes.c_char_p,
-    ctypes.c_char_p,
-    ctypes.c_int,
-    ctypes.c_int,
-)
-
-errfunc = ctypes.CFUNCTYPE(
-    None,
-    ctypes.c_char_p,
-)
-
-llvm_symbolizer_new = lib.llvm_symbolizer_new
-llvm_symbolizer_new.restype = ctypes.c_void_p
-
-llvm_symbolizer_free = lib.llvm_symbolizer_free
-llvm_symbolizer_free.argtypes = (ctypes.c_void_p,)
-
-llvm_symbolizer_symbolize = lib.llvm_symbolizer_symbolize
-llvm_symbolizer_symbolize.argtypes = (
-    ctypes.c_void_p,
-    symfunc,
-    errfunc,
-    ctypes.c_char_p,
-    ctypes.c_uint64,
-    ctypes.c_int,
-)
-llvm_symbolizer_symbolize.restype = ctypes.c_int
+from _symsynd_symbolizer import lib, ffi
 
 
 _lib_lock = Lock()
@@ -53,20 +19,24 @@ def _init_lib():
         _initialized = True
 
 
-def invalid_to_none(value):
-    if value != '<invalid>':
-        return value
+def _symstr(ptr):
+    if ptr == ffi.NULL:
+        return None
+    val = ffi.string(ptr)
+    if val == '<invalid>':
+        return None
+    return val.decode('utf-8', 'replace')
 
 
 class Symbolizer(object):
 
     def __init__(self):
         _init_lib()
-        self._ptr = llvm_symbolizer_new()
+        self._ptr = lib.llvm_symbolizer_new()
 
     def close(self):
         if self._ptr is not None:
-            llvm_symbolizer_free(self._ptr)
+            lib.llvm_symbolizer_free(self._ptr)
             self._ptr = None
 
     def __enter__(self):
@@ -88,21 +58,17 @@ class Symbolizer(object):
         if arch is not None:
             module += ':' + arch
 
-        rv = []
-        errors = []
+        rv = lib.llvm_symbolizer_symbolize(
+            self._ptr, module, offset, is_data and 1 or 0)
+        try:
+            if rv.error:
+                raise SymbolicationError(_symstr(rv.error))
 
-        def success(name, filename, lineno, column):
-            rv.append((invalid_to_none(name),
-                       invalid_to_none(filename), lineno, column))
-
-        def failure(message):
-            errors.append(message)
-
-        llvm_symbolizer_symbolize(
-            self._ptr, symfunc(success),
-            errfunc(failure), module, offset, is_data and 1 or 0)
-
-        if rv:
-            return rv[0]
-        if errors:
-            raise SymbolicationError(errors[0])
+            return (
+                _symstr(rv.name),
+                _symstr(rv.filename),
+                rv.lineno,
+                rv.column,
+            )
+        finally:
+            lib.llvm_symbol_free(rv)

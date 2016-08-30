@@ -77,7 +77,6 @@ class ReportSymbolizer(object):
                 img['dsym_path'], img['image_vmaddr'],
                 img['image_addr'], frame['instruction_addr'],
                 img['cpu_name'], img['uuid'], silent=silent)
-            print rv
 
             # Only return this if we found the symbol
             if rv['symbol_name'] is not None:

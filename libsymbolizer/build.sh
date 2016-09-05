@@ -21,3 +21,6 @@ mkdir -p sym
 cd sym
 LLVM_DIR=`pwd`/../llvm cmake -D CMAKE_CXX_FLAGS=-std=c++11 $CACHE_FLAGS ../..
 make
+
+# Print some stuff
+ls -alh ../llvm/lib/*.a

@@ -1,9 +1,22 @@
 import os
+import subprocess
 from setuptools import setup, find_packages
+from distutils.command.build_ext import build_ext
 
 
 # Build with clang if not otherwise specified.
 os.environ.setdefault('CC', 'clang')
+
+
+class LLVMBuildExt(build_ext):
+
+    def pre_run(self, ext, ffi):
+        if ext.name != '_symsynd_symbolizer':
+            return
+        subprocess.Popen(
+            ['make', 'build'],
+            cwd=os.path.abspath(os.path.dirname(__file__))
+        ).wait()
 
 
 setup(
@@ -17,6 +30,9 @@ setup(
     packages=find_packages(),
     cffi_modules=['demangler_build.py:ffi',
                   'symbolizer_build.py:ffi'],
+    cmdclass={
+        'build_ext': LLVMBuildExt,
+    },
     include_package_data=True,
     zip_safe=False,
     platforms='any',

@@ -23,4 +23,5 @@ set(LLVM_LINK_COMPONENTS
 add_llvm_library(LLVMSymbolizer
   STATIC;
   llvm-symbolizer.cpp
+  PROPERTIES COMPILE_FLAGS "-fPIC"
   )

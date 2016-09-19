@@ -3,7 +3,7 @@
 set -eu
 cd -P -- "$(dirname -- "$0")"
 
-CACHE_FLAGS="-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_OSX_ARCHITECTURES='i386;x86_64'"
+CACHE_FLAGS="-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_OSX_ARCHITECTURES=i386;x86_64 -DCMAKE_CXX_FLAGS=-std=c++11 -DLLVM_ENABLE_RTTI=1 -DLLVM_ENABLE_PIC=1"
 
 # Prepare llvm build
 mkdir -p build/llvm
@@ -19,7 +19,7 @@ make
 cd ../../..
 mkdir -p sym
 cd sym
-LLVM_DIR=`pwd`/../llvm cmake -D CMAKE_CXX_FLAGS=-std=c++11 $CACHE_FLAGS ../..
+LLVM_DIR=`pwd`/../llvm cmake $CACHE_FLAGS ../..
 make
 
 # Print some stuff

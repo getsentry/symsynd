@@ -4,8 +4,8 @@ prepare:
 build: prepare
 	./libsymbolizer/build.sh
 
-develop: build
-	pip install --editable .
+develop:
+	pip install -v --editable .
 
 test: develop
 	pip install pytest

@@ -26,6 +26,7 @@
 #include "llvm/Support/Path.h"
 #include "llvm/Support/PrettyStackTrace.h"
 #include "llvm/Support/Signals.h"
+#include "llvm/Support/Error.h"
 #include "llvm/Support/raw_ostream.h"
 #include <cstdio>
 #include <cstring>
@@ -38,13 +39,13 @@ using namespace symbolize;
 
 template<typename T>
 static bool sym_failed(Expected<T> &expt, llvm_symbol_t *sym) {
-  if (expt) {
-    return false;
-  }
-  auto msg = toString(expt.takeError());
-  free(sym->error);
-  sym->error = strdup(msg.c_str());
-  return true;
+    if (expt) {
+        return false;
+    }
+    auto msg = toString(expt.takeError());
+    free(sym->error);
+    sym->error = strdup(msg.c_str());
+    return true;
 }
 
 static int lib_initialized;

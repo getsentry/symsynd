@@ -1,5 +1,5 @@
 prepare:
-	git submodule update --init
+	if hash git 2> /dev/null; then git submodule update --init; fi
 
 build: prepare
 	./libsymbolizer/build.sh

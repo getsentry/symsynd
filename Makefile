@@ -1,7 +1,8 @@
 llvm/CMakeLists.txt:
-	git submodule update --init
+	mkdir llvm
+	wget -O- https://github.com/llvm-mirror/llvm/archive/922af1cb4.tar.gz | tar -xz --strip-components=1 -C llvm
 
-build: llvm/CMakeLists.txt
+build:
 	./libsymbolizer/build.sh
 
 build-wheel: build
@@ -21,7 +22,7 @@ clean:
 clean-docker:
 	docker rmi -f symsynd:dev
 
-build-docker-wheel: llvm/CMakeLists.txt
-	./docker-build.sh build-wheel
+build-docker-wheel:
+	./docker-build.sh
 
 .PHONY: build build-wheel develop test clean clean-docker build-docker-wheel

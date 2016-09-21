@@ -15,7 +15,7 @@ cmake \
   -DLLVM_ENABLE_RTTI=1 \
   -DLLVM_ENABLE_PIC=1 \
   -DLLVM_EXTERNAL_PROJECTS=Symbolizer \
-  -DLLVM_EXTERNAL_SYMBOLIZER_SOURCE_DIR=../ ../../llvm
+  -DLLVM_EXTERNAL_SYMBOLIZER_SOURCE_DIR=../ ${SYMSYND_LLVM_DIR:-../../llvm}
 
 cd tools/Symbolizer
 make

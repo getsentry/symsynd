@@ -1,5 +1,7 @@
 .git
 .cache
+.dockerignore
+docker-build.sh
 build
 dist
 llvm

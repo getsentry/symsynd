@@ -21,7 +21,7 @@ clean:
 clean-docker:
 	docker rmi -f symsynd:dev
 
-build-docker-wheel:
+build-docker-wheel: llvm/CMakeLists.txt
 	./docker-build.sh build-wheel
 
 .PHONY: build build-wheel develop test clean clean-docker build-docker-wheel

@@ -2,4 +2,4 @@
 .cache
 build
 libsymbolizer/build
-_symsynd_*.so
+symsynd/*.so

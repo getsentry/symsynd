@@ -12,3 +12,6 @@ test: develop
 	py.test --tb=short tests -vv
 
 full-test: build test
+
+clean:
+	rm symsynd/*.so

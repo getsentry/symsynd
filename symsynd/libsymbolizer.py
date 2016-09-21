@@ -1,7 +1,11 @@
+import os
 from threading import Lock
 
 from symsynd.exceptions import SymbolicationError
-from _symsynd_symbolizer import lib, ffi
+from symsynd._symbolizer import ffi
+
+
+lib = ffi.dlopen(os.path.join(os.path.dirname(__file__), '_libsymbolizer.so'))
 
 
 _lib_lock = Lock()

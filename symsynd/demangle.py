@@ -1,4 +1,4 @@
-from _symsynd_demangler import ffi, lib
+from symsynd._demangler import ffi, lib
 
 
 def _make_buffer():

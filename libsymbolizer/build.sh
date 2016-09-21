@@ -14,13 +14,11 @@ cmake $CACHE_FLAGS ../../../llvm
 # build all of our dependencies
 cd tools/llvm-symbolizer
 make
+cd ../..
 
 # Make our build
-cd ../../..
+cd ..
 mkdir -p sym
 cd sym
 LLVM_DIR=`pwd`/../llvm cmake $CACHE_FLAGS ../..
 make
-
-# Print some stuff
-ls -alh ../llvm/lib/*.a

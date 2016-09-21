@@ -1,2 +1,3 @@
-include MANIFEST.in Makefile LICENSE README.md demangler_build.py
+include MANIFEST.in Makefile LICENSE README.md build.py
 recursive-include demangle *
+recursive-include symsynd *

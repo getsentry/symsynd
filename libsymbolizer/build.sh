@@ -7,6 +7,7 @@ mkdir -p build
 cd build
 
 cmake \
+  -DCMAKE_BUILD_TYPE=MinSizeRel \
   -DCMAKE_C_COMPILER=clang \
   -DCMAKE_CXX_COMPILER=clang++ \
   -DCMAKE_OSX_ARCHITECTURES="i386;x86_64" \

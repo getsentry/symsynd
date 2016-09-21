@@ -1,10 +1,12 @@
 llvm/CMakeLists.txt:
 	git submodule update --init
 
-symsynd/_libsymbolizer.so: llvm/CMakeLists.txt
+build: llvm/CMakeLists.txt
 	./libsymbolizer/build.sh
 
-build: symsynd/_libsymbolizer.so
+build-wheel: build
+	pip install wheel
+	python setup.py bdist_wheel
 
 develop:
 	pip install -v --editable .
@@ -16,4 +18,10 @@ test: develop
 clean:
 	rm symsynd/*.so
 
-.PHONY: build develope test clean
+clean-docker:
+	docker rmi -f symsynd:dev
+
+build-docker-wheel:
+	./docker-build.sh build-wheel
+
+.PHONY: build build-wheel develop test clean clean-docker build-docker-wheel

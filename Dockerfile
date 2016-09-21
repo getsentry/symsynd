@@ -35,6 +35,6 @@ ENV PATH /cmake-3.4.3-Linux-x86_64/bin:$PATH
 
 WORKDIR /symsynd
 ADD . /symsynd
-RUN make develop
+RUN mkdir -p /symsynd/llvm; mkdir -p /symsynd/build
 
-CMD [ "bash" ]
+ENTRYPOINT [ "make" ]

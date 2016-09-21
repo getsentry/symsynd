@@ -1,40 +1,34 @@
-FROM debian:jessie
+FROM python:2.7.12
 
-ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        clang \
-        curl \
-        g++ \
-        gcc-4.8 \
-        g++-4.8 \
-        python-pip \
-        python-setuptools \
-        python-dev \
-        libffi-dev \
-        libxml2-dev \
-        libxml2-dev \
-	zlib1g-dev \
-	libncurses5-dev \
-
-        # Extra dev tooling
-        make \
-        vim-nox \
-        less \
-        ntp \
-	wget \
-    && rm -rf /var/lib/apt/lists/*
+		clang \
+	&& rm -rf /var/lib/apt/lists/*
 
 # Sane defaults for pip
 ENV PIP_NO_CACHE_DIR off
 ENV PIP_DISABLE_PIP_VERSION_CHECK on
 ENV PYTHONUNBUFFERED 1
 
-RUN wget --no-check-certificate http://cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz \
-	&& tar -xzf cmake-3.4.3-Linux-x86_64.tar.gz
-ENV PATH /cmake-3.4.3-Linux-x86_64/bin:$PATH
+RUN set -ex \
+	&& version=3.4.3 \
+	&& checksum=66b8d315c852908be9f79e1a18b8778714659fce4ddb2d041af8680a239202fc \
+	&& wget "https://cmake.org/files/v3.4/cmake-$version-Linux-x86_64.tar.gz" \
+	&& echo "$checksum  cmake-$version-Linux-x86_64.tar.gz" | sha256sum -c - \
+	&& tar -xzf "cmake-$version-Linux-x86_64.tar.gz" --strip-components=1 -C /usr/local \
+	&& rm "cmake-$version-Linux-x86_64.tar.gz"
 
-WORKDIR /symsynd
-ADD . /symsynd
-RUN mkdir -p /symsynd/llvm; mkdir -p /symsynd/build
+ENV SYMSYND_LLVM_DIR /usr/src/llvm
 
-ENTRYPOINT [ "make" ]
+RUN version=922af1cb46bb89a7bdbf68dfe77b15d1347441d7 \
+	&& mkdir -p $SYMSYND_LLVM_DIR \
+	&& wget "https://github.com/llvm-mirror/llvm/archive/$version.tar.gz" \
+	&& tar -xzf "$version.tar.gz" --strip-components=1 -C $SYMSYND_LLVM_DIR \
+	&& rm "$version.tar.gz"
+
+RUN mkdir -p /usr/src/symsynd
+WORKDIR /usr/src/symsynd
+COPY . /usr/src/symsynd
+
+RUN make build-wheel
+
+CMD tar -C dist/ -cf - .

@@ -1,8 +1,10 @@
-prepare:
-	if hash git 2> /dev/null; then git submodule update --init; fi
+llvm/CMakeLists.txt:
+	git submodule update --init
 
-build: prepare
+symsynd/_libsymbolizer.so: llvm/CMakeLists.txt
 	./libsymbolizer/build.sh
+
+build: symsynd/_libsymbolizer.so
 
 develop:
 	pip install -v --editable .
@@ -11,7 +13,7 @@ test: develop
 	pip install pytest
 	py.test --tb=short tests -vv
 
-full-test: build test
-
 clean:
 	rm symsynd/*.so
+
+.PHONY: build develope test clean

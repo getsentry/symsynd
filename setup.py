@@ -15,30 +15,28 @@ PACKAGE = 'symsynd'
 EXT_EXT = sys.platform == 'darwin' and '.dylib' or '.so'
 
 
-def build_ext_lib(base_path):
+def build_libsymboizer(base_path):
     lib_path = os.path.join(base_path, '_libsymbolizer.so')
     here = os.path.abspath(os.path.dirname(__file__))
     subprocess.Popen(['make', 'build'], cwd=here).wait()
-    src_path = os.path.join(here, 'libsymbolizer', 'build', 'sym')
-    os.rename(os.path.join(src_path, 'libLLVMSymbolizer' + EXT_EXT),
-              lib_path)
+    src_path = os.path.join(here, 'libsymbolizer', 'build', 'lib',
+                            'libLLVMSymbolizer' + EXT_EXT)
+    if os.path.isfile(src_path):
+        os.rename(src_path, lib_path)
 
 
 class CustomBuildPy(build_py):
     def run(self):
         build_py.run(self)
-        build_ext_lib(os.path.join(self.build_lib, *PACKAGE.split('.')))
+        build_libsymboizer(os.path.join(self.build_lib, *PACKAGE.split('.')))
 
 
 class CustomBuildExt(build_ext):
     def run(self):
         build_ext.run(self)
-        if not self.inplace:
-            return
-        # from get_ext_fullpath() in distutils/command/build_ext.py
-        build_py = self.get_finalized_command('build_py')
-        package_dir = build_py.get_package_dir(PACKAGE)
-        build_ext_lib(package_dir)
+        if self.inplace:
+            build_py = self.get_finalized_command('build_py')
+            build_libsymboizer(build_py.get_package_dir(PACKAGE))
 
 
 setup(

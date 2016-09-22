@@ -29,6 +29,4 @@ RUN mkdir -p /usr/src/symsynd
 WORKDIR /usr/src/symsynd
 COPY . /usr/src/symsynd
 
-RUN make build-wheel
-
-CMD tar -C dist/ -cf - .
+ENTRYPOINT [ "make" ]

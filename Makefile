@@ -2,7 +2,7 @@ llvm/CMakeLists.txt:
 	mkdir llvm
 	wget -O- https://github.com/llvm-mirror/llvm/archive/922af1cb4.tar.gz | tar -xz --strip-components=1 -C llvm
 
-build:
+build: llvm/CMakeLists.txt
 	./libsymbolizer/build.sh
 
 build-wheel: build

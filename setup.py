@@ -18,7 +18,9 @@ EXT_EXT = sys.platform == 'darwin' and '.dylib' or '.so'
 def build_libsymboizer(base_path):
     lib_path = os.path.join(base_path, '_libsymbolizer.so')
     here = os.path.abspath(os.path.dirname(__file__))
-    subprocess.Popen(['make', 'build'], cwd=here).wait()
+    rv = subprocess.Popen(['make', 'build'], cwd=here).wait()
+    if rv != 0:
+        sys.exit(rv)
     src_path = os.path.join(here, 'libsymbolizer', 'build', 'lib',
                             'libLLVMSymbolizer' + EXT_EXT)
     if os.path.isfile(src_path):

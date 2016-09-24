@@ -5,6 +5,7 @@
 *.so
 .cache
 .eggs
+.Dockerfile*
 build
 dist
 llvm

@@ -23,14 +23,26 @@ cleanup() {
   fi
   rm -f "$CIDFILE"
 }
+
+# trigger a build
+build() {
+  cleanup
+  docker build -t symsynd:$1 -f $2 .
+  docker run --cidfile="$CIDFILE" symsynd:$1 wheel
+  CID=$(cat "$CIDFILE")
+  docker cp "$CID:/usr/src/symsynd/dist/." dist
+}
+
+# Make sure we clean up before we exit in any case
 trap cleanup EXIT
 
 mkdir -p dist
-docker build -t symsynd:dev -f $DOCKERFILE .
-docker run --cidfile="$CIDFILE" symsynd:dev wheel
 
-CID=$(cat "$CIDFILE")
-
-docker cp "$CID:/usr/src/symsynd/dist/." dist
+if [ x$SYMSYND_MANYLINUX == x1 ]; then
+  build dev32 Dockerfile.manylinux.32
+  build dev64 Dockerfile.manylinux.64
+else
+  build dev Dockerfile
+fi
 
 ls -alh dist

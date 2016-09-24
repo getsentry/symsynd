@@ -12,7 +12,7 @@ add_llvm_library(LLVMSymbolizer
 )
 #set_target_properties(LLVMSymbolizer PROPERTIES COMPILE_FLAGS "-fPIC")
 
-if ($ENV{SYMSYND_MANYLINUX} EQUAL "1")
+if ("$ENV{SYMSYND_MANYLINUX}" STREQUAL "1")
   set_target_properties(LLVMSymbolizer PROPERTIES LINK_FLAGS
 	  "-static-libstdc++ -static-libgcc")
 endif()

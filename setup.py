@@ -7,8 +7,12 @@ from distutils.command.build_ext import build_ext
 
 
 # Build with clang if not otherwise specified.
-os.environ.setdefault('CC', 'clang')
-os.environ.setdefault('CXX', 'clang++')
+if os.environ.get('SYMSYND_MANYLINUX') == '1':
+    os.environ.setdefault('CC', 'gcc')
+    os.environ.setdefault('CXX', 'g++')
+else:
+    os.environ.setdefault('CC', 'clang')
+    os.environ.setdefault('CXX', 'clang++')
 
 
 PACKAGE = 'symsynd'

@@ -1,0 +1,33 @@
+FROM quay.io/pypa/manylinux1_x86_64
+
+RUN yum -y install python-hashlib
+RUN curl -sL https://copr.fedorainfracloud.org/coprs/mlampe/llvm_381_el5/repo/epel-5/mlampe-llvm_381_el5-epel-5.repo > /etc/yum.repos.d/mlampe-llvm_381_el5-epel-5.repo
+RUN yum -y install clang libcxx libcxxabi llvm openmp devtoolset-2-libstdc++-devel devtoolset-2-binutils-devel devtoolset-2-libatomic-devel gcc libffi-devel
+
+# Sane defaults for pip
+ENV PIP_NO_CACHE_DIR off
+ENV PIP_DISABLE_PIP_VERSION_CHECK on
+ENV PYTHONUNBUFFERED 1
+
+RUN set -ex \
+	&& version=3.4.3 \
+	&& checksum=66b8d315c852908be9f79e1a18b8778714659fce4ddb2d041af8680a239202fc \
+	&& wget --no-check-certificate "https://cmake.org/files/v3.4/cmake-$version-Linux-x86_64.tar.gz" \
+	&& echo "$checksum  cmake-$version-Linux-x86_64.tar.gz" | sha256sum -c - \
+	&& tar -xzf "cmake-$version-Linux-x86_64.tar.gz" --strip-components=1 -C /usr/local \
+	&& rm "cmake-$version-Linux-x86_64.tar.gz"
+
+ENV SYMSYND_LLVM_DIR /usr/src/symsynd/llvm
+RUN version=922af1cb46bb89a7bdbf68dfe77b15d1347441d7 \
+	&& mkdir -p $SYMSYND_LLVM_DIR \
+	&& wget "https://github.com/llvm-mirror/llvm/archive/$version.tar.gz" -O "$version.tar.gz" \
+	&& tar -xzf "$version.tar.gz" --strip-components=1 -C $SYMSYND_LLVM_DIR \
+	&& rm "$version.tar.gz"
+
+ENV SYMSYND_MANYLINUX 1
+ENV PATH "/opt/python/cp27-cp27mu/bin:$PATH"
+RUN mkdir -p /usr/src/symsynd
+WORKDIR /usr/src/symsynd
+COPY . /usr/src/symsynd
+
+ENTRYPOINT [ "make" ]

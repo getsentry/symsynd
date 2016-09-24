@@ -27,7 +27,7 @@ trap cleanup EXIT
 
 mkdir -p dist
 docker build -t symsynd:dev -f $DOCKERFILE .
-docker run --cidfile="$CIDFILE" symsynd:dev build-wheel
+docker run --cidfile="$CIDFILE" symsynd:dev wheel
 
 CID=$(cat "$CIDFILE")
 

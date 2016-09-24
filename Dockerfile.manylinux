@@ -30,4 +30,4 @@ RUN mkdir -p /usr/src/symsynd
 WORKDIR /usr/src/symsynd
 COPY . /usr/src/symsynd
 
-ENTRYPOINT [ "make" ]
+ENTRYPOINT [ "make", "MANYLINUX=1" ]

@@ -22,6 +22,8 @@ clean:
 
 clean-docker:
 	docker rmi -f symsynd:dev
+	docker rmi -f symsynd:dev32
+	docker rmi -f symsynd:dev64
 
 manylinux-wheel:
 	SYMSYND_MANYLINUX=1 ./docker-build.sh

@@ -8,6 +8,7 @@ build: llvm/CMakeLists.txt
 build-wheel: build
 	pip install wheel
 	python setup.py bdist_wheel
+	if [ x$$SYMSYND_MANYLINUX == x1 ]; then auditwheel show dist/*.whl; fi
 
 develop:
 	pip install -v --editable .
@@ -23,6 +24,6 @@ clean-docker:
 	docker rmi -f symsynd:dev
 
 build-docker-wheel:
-	./docker-build.sh
+	SYMSYND_MANYLINUX=1 ./docker-build.sh
 
 .PHONY: build build-wheel develop test clean clean-docker build-docker-wheel

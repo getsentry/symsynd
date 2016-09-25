@@ -1,3 +1,6 @@
-include MANIFEST.in Makefile LICENSE README.md build.py
+include MANIFEST.in Makefile LICENSE README.md build.py build-wheels.sh
 recursive-include demangle *
 recursive-include symsynd *
+recursive-include libsymbolizer *
+recursive-exclude libsymbolizer/build *
+recursive-include llvm *

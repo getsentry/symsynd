@@ -1,7 +1,6 @@
 FROM python:2.7.12
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-		clang \
+RUN apt-get update && apt-get install -y --no-install-recommends clang \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Sane defaults for pip
@@ -17,13 +16,9 @@ RUN set -ex \
 	&& tar -xzf "cmake-$version-Linux-x86_64.tar.gz" --strip-components=1 -C /usr/local \
 	&& rm "cmake-$version-Linux-x86_64.tar.gz"
 
-ENV SYMSYND_LLVM_DIR /usr/src/llvm
-
-RUN version=922af1cb46bb89a7bdbf68dfe77b15d1347441d7 \
-	&& mkdir -p $SYMSYND_LLVM_DIR \
-	&& wget "https://github.com/llvm-mirror/llvm/archive/$version.tar.gz" \
-	&& tar -xzf "$version.tar.gz" --strip-components=1 -C $SYMSYND_LLVM_DIR \
-	&& rm "$version.tar.gz"
+ENV SYMSYND_LLVM_DIR /usr/src/symsynd/llvm
+RUN mkdir -p $SYMSYND_LLVM_DIR \
+	&& wget -O- https://github.com/llvm-mirror/llvm/archive/922af1cb46bb89a7bdbf68dfe77b15d1347441d7.tar.gz | tar -xz --strip-components=1 -C $SYMSYND_LLVM_DIR
 
 RUN mkdir -p /usr/src/symsynd
 WORKDIR /usr/src/symsynd

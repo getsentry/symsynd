@@ -36,6 +36,6 @@ all-wheels: wheel manylinux-wheel
 
 release: sdist all-wheels
 	pip install twine
-	twine upload symsynd-`python setup.py --version`-*.whl
+	twine upload symsynd-`python setup.py --version`-*
 
 .PHONY: build sdist wheel develop test clean clean-docker build-docker-wheel all-wheels release

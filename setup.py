@@ -1,6 +1,20 @@
 import os
 import sys
 import subprocess
+
+# The wheel generated on OS X carries a python unicode ABI tag.
+# We want to remove this since our wheel is actually universal as
+# far as this goes since we never actually link against libpython.
+# Since there does not appear to be an API to do that, we just
+# patch the internal function that wheel uses.
+if sys.platform == 'darwin':
+    try:
+        from wheel import pep425tags
+    except ImportError:
+        pass
+    else:
+        pep425tags.get_abi_tag = lambda: 'none'
+
 from setuptools import setup, find_packages
 from distutils.command.build_py import build_py
 from distutils.command.build_ext import build_ext

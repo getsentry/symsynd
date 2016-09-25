@@ -5,6 +5,16 @@ cd -P -- "$(dirname -- "$0")"
 
 SYMSYND_MANYLINUX=${SYMSYND_MANYLINUX:-0}
 
+# Make sure we compile against the 10.9 SDK.  See also build-wheels.sh
+if [ `uname` == "Darwin" ]; then
+  export MACOSX_DEPLOYMENT_TARGET=10.9
+  XCODE_SDKS="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs"
+  if [ ! -d "${XCODE_SDKS}/MacOSX${MACOSX_DEPLOYMENT_TARGET}.sdk" ]; then
+    echo "abort: cannot find the ${MACOSX_DEPLOYMENT_TARGET} SDK. You can get it from https://github.com/phracker/MacOSX-SDKs and place in ${XCODE_SDKS}"
+    exit 1
+  fi
+fi
+
 mkdir -p build
 cd build
 

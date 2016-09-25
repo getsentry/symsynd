@@ -17,9 +17,12 @@ wheel:
 develop:
 	pip install -v --editable .
 
+fast-test:
+	py.test --tb=short tests -vv
+
 test: develop
 	pip install pytest
-	py.test --tb=short tests -vv
+	$(MAKE) fast-test
 
 clean:
 	rm symsynd/*.so
@@ -38,4 +41,5 @@ release: sdist all-wheels
 	pip install twine
 	twine upload dist/symsynd-`python setup.py --version`[-.]*
 
-.PHONY: build sdist wheel develop test clean clean-docker build-docker-wheel all-wheels release
+.PHONY: build sdist wheel develop fast-test test clean clean-docker \
+	build-docker-wheel all-wheels release

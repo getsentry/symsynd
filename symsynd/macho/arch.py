@@ -214,7 +214,7 @@ def get_macho_image_info(filename):
                 d['uuid'] = str(uuid.UUID(bytes=cmd[1].uuid))
             elif (type(cmd[1]) in (segment_command,
                                    segment_command_64) and
-                  cmd[1].segname.strip('\x00') == '__TEXT'):
+                  cmd[1].segname.strip(b'\x00') == b'__TEXT'):
                 d['vmaddr'] = cmd[1].vmaddr
                 d['vmsize'] = cmd[1].vmsize
         rv.append(d)

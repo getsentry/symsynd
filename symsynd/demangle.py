@@ -1,4 +1,5 @@
 from symsynd._demangler import ffi, lib
+from symsynd._compat import text_type
 
 
 def _make_buffer():
@@ -8,7 +9,7 @@ def _make_buffer():
 def _demangle(func, sym, buffer=None):
     if buffer is None:
         buffer = _make_buffer()
-    if isinstance(sym, unicode):
+    if isinstance(sym, text_type):
         sym = sym.encode('utf-8')
     rv = func(sym, buffer, len(buffer))
     if rv:

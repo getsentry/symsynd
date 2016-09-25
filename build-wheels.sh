@@ -13,6 +13,8 @@ WHEEL_OPTIONS=
 #
 # Since we build the libsymbolizer separately it's important the same deployment
 # target is also used in the libsymbolizer/build.sh so we do it there as well.
+#
+# For the demangler we set the deployment target to 10.9 in setup.py itself.
 if [ `uname` == "Darwin" ]; then
   python -c "if 1:
     import sys
@@ -26,22 +28,13 @@ if [ `uname` == "Darwin" ]; then
   WHEEL_OPTIONS="--plat-name=macosx-10.9-intel"
 fi
 
-# In case we build for manylinux we run for all 2.7 versions.  This assumes
-# this script is run in our docker container where those python versions exist.
-if [ x$SYMSYND_MANYLINUX == x1 ]; then
-  for pypath in /opt/python/cp27-*; do
-    # cffi stores some crap here which is not stable between ucs versions
-    # so we need to make sure it goes away
-    rm -rf .eggs build
-    $pypath/bin/pip install wheel
-    $pypath/bin/python setup.py bdist_wheel $WHEEL_OPTIONS
-  done
-
-# Otherwise just invoke normally.
-else
-  pip install wheel
-  python setup.py bdist_wheel $WHEEL_OPTIONS
-fi
+# Since we do not link against libpython we can just use any of the Pythons
+# on the system to generate a while (UCS2/UCS4 does not matter).  The dockerfile
+# enables one of them already so we go with that.
+# In case we would want multiple builds in the future we would need to delete
+# .eggs and build between the builds.
+pip install wheel
+python setup.py bdist_wheel $WHEEL_OPTIONS
 
 # For manylinux wheels we make sure we run auditwheel repair to ensure the
 # wheels are correct and to trigger a rename to the manylinux1 tag.

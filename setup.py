@@ -2,18 +2,16 @@ import os
 import sys
 import subprocess
 
-# The wheel generated on OS X carries a python unicode ABI tag.
-# We want to remove this since our wheel is actually universal as
-# far as this goes since we never actually link against libpython.
-# Since there does not appear to be an API to do that, we just
-# patch the internal function that wheel uses.
-if sys.platform == 'darwin':
-    try:
-        from wheel import pep425tags
-    except ImportError:
-        pass
-    else:
-        pep425tags.get_abi_tag = lambda: 'none'
+# The wheel generated carries a python unicode ABI tag.  We want to remove
+# this since our wheel is actually universal as far as this goes since we
+# never actually link against libpython.  Since there does not appear to
+# be an API to do that, we just patch the internal function that wheel uses.
+try:
+    from wheel import pep425tags
+except ImportError:
+    pass
+else:
+    pep425tags.get_abi_tag = lambda: 'none'
 
 from setuptools import setup, find_packages
 from distutils.command.build_py import build_py
@@ -31,6 +29,12 @@ else:
 
 PACKAGE = 'symsynd'
 EXT_EXT = sys.platform == 'darwin' and '.dylib' or '.so'
+
+
+# If we're building on OS X we want to make sure that our deployment
+# target is set to 10.9.
+if sys.platform == 'darwin':
+    os.environ.setdefault('MACOSX_DEPLOYMENT_TARGET', '10.9')
 
 
 def build_libsymboizer(base_path):

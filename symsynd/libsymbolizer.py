@@ -3,6 +3,7 @@ from threading import Lock
 
 from symsynd.exceptions import SymbolicationError
 from symsynd._symbolizer import ffi
+from symsynd._compat import to_bytes
 
 
 lib = ffi.dlopen(os.path.join(os.path.dirname(__file__), '_libsymbolizer.so'))
@@ -63,7 +64,7 @@ class Symbolizer(object):
             module += ':' + arch
 
         rv = lib.llvm_symbolizer_symbolize(
-            self._ptr, module, offset, is_data and 1 or 0)
+            self._ptr, to_bytes(module), offset, is_data and 1 or 0)
         try:
             if rv.error:
                 raise SymbolicationError(_symstr(rv.error))

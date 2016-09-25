@@ -1,6 +1,7 @@
 import os
 from contextlib import contextmanager
 from itertools import chain
+from symsynd._compat import int_types
 
 
 def which(prog, extra_paths=None):
@@ -29,7 +30,7 @@ def progressbar(items, prefix, enabled=True):
 def parse_addr(x):
     if x is None:
         return 0
-    if isinstance(x, (int, long)):
+    if isinstance(x, int_types):
         return x
     if isinstance(x, basestring):
         if x[:2] == '0x':

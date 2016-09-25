@@ -32,10 +32,10 @@ clean-docker:
 	docker rmi -f symsynd:dev32
 	docker rmi -f symsynd:dev64
 
-manylinux-wheel:
+manylinux-wheels:
 	SYMSYND_MANYLINUX=1 ./docker-build.sh
 
-all-wheels: wheel manylinux-wheel
+all-wheels: wheel manylinux-wheels
 
 release: sdist all-wheels
 	pip install twine

@@ -33,15 +33,21 @@ fi
 # enables one of them already so we go with that.
 # In case we would want multiple builds in the future we would need to delete
 # .eggs and build between the builds.
-pip install wheel
-python setup.py bdist_wheel $WHEEL_OPTIONS
-
-# For manylinux wheels we make sure we run auditwheel repair to ensure the
-# wheels are correct and to trigger a rename to the manylinux1 tag.
 if [ x$SYMSYND_MANYLINUX == x1 ]; then
+  for py in cp27-cp27mu cp33-cp33m cp34-cp34m cp35-cp35m; do
+    pybin="/opt/python/$py/bin"
+    $pybin/pip install wheel
+    $pybin/python setup.py bdist_wheel $WHEEL_OPTIONS
+  done
+
   echo "Auditing wheels"
   for wheel in dist/*-linux_*.whl; do
     auditwheel repair $wheel -w dist/
     rm $wheel
   done
+
+# Otherwise just build with the normal python and embrace it.
+else
+  pip install wheel
+  python setup.py bdist_wheel $WHEEL_OPTIONS
 fi

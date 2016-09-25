@@ -8,7 +8,7 @@ llvm/CMakeLists.txt:
 build: llvm/CMakeLists.txt
 	./libsymbolizer/build.sh
 
-sdist:
+sdist: llvm/CMakeLists.txt
 	python setup.py sdist --formats=zip
 
 wheel:

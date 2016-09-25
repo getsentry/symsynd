@@ -6,6 +6,7 @@
 .cache
 .eggs
 .Dockerfile*
+.build-venvs
 build
 dist
 llvm

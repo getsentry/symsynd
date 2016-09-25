@@ -35,7 +35,10 @@ clean-docker:
 manylinux-wheels:
 	SYMSYND_MANYLINUX=1 ./docker-build.sh
 
-all-wheels: wheel manylinux-wheels
+mac-wheels:
+	SYMSYND_MACWHEELS=1 ./build-wheels.sh
+
+all-wheels: mac-wheels manylinux-wheels
 
 release: sdist all-wheels
 	pip install twine

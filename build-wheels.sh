@@ -4,7 +4,19 @@ set -eu
 cd -P -- "$(dirname -- "$0")"
 
 SYMSYND_MANYLINUX=${SYMSYND_MANYLINUX:-0}
+SYMSYND_MACWHEELS=${SYMSYND_MACWHEELS:-0}
 WHEEL_OPTIONS=
+
+check_mac_py() {
+  $1 -c "if 1:
+    import sys
+    from distutils.util import get_platform
+    ver = tuple(int(x) for x in get_platform().split('-')[1].split('.'))
+    if ver > (10, 9):
+        print('abort: python is compiled against an OS X that is too new')
+        sys.exit(1)
+  "
+}
 
 # If we are building on OS X we make sure that our platform version is compiled
 # OSX SDK 10.9 and then we ensure that we are building all our stuff with that
@@ -16,14 +28,7 @@ WHEEL_OPTIONS=
 #
 # For the demangler we set the deployment target to 10.9 in setup.py itself.
 if [ `uname` == "Darwin" ]; then
-  python -c "if 1:
-    import sys
-    from distutils.util import get_platform
-    ver = tuple(int(x) for x in get_platform().split('-')[1].split('.'))
-    if ver > (10, 9):
-        print 'abort: python is compiled against an OS X that is too new'
-	sys.exit(1)
-  "
+  check_mac_py python
   export MACOSX_DEPLOYMENT_TARGET=10.9
   WHEEL_OPTIONS="--plat-name=macosx-10.9-intel"
 fi
@@ -44,6 +49,25 @@ if [ x$SYMSYND_MANYLINUX == x1 ]; then
   for wheel in dist/*-linux_*.whl; do
     auditwheel repair $wheel -w dist/
     rm $wheel
+  done
+
+# with the macwheels flag, we assume we run on a mac and then build everything
+# there.
+elif [ x$SYMSYND_MACWHEELS == x1 ]; then
+  if [ `uname` != "Darwin" ]; then
+    echo "abort: mac-wheels can only be built on a mac"
+    exit 1
+  fi
+
+  mkdir -p .build-venvs
+
+  for pyver in 2.7 3.3 3.4 3.5; do
+    pybin="/Library/Frameworks/Python.framework/Versions/$pyver/bin"
+    py="$pybin/python${pyver:0:1}"
+    check_mac_py $py
+    virtualenv .build-venvs/$pyver -p $py
+    .build-venvs/$pyver/bin/pip install --upgrade wheel
+    .build-venvs/$pyver/bin/python setup.py bdist_wheel $WHEEL_OPTIONS
   done
 
 # Otherwise just build with the normal python and embrace it.

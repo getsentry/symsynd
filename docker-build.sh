@@ -27,6 +27,7 @@ cleanup() {
 # trigger a build
 build() {
   cleanup
+  docker rmi -f symsynd:$1 2> /dev/null || true
   docker build -t symsynd:$1 -f $2 .
   docker run --cidfile="$CIDFILE" symsynd:$1 wheel
   CID=$(cat "$CIDFILE")

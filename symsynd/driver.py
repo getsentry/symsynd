@@ -2,7 +2,7 @@ import os
 import errno
 from threading import RLock
 
-from symsynd.utils import parse_addr
+from symsynd.utils import parse_addr, timedsection
 from symsynd.macho.arch import is_valid_cpu_name, get_macho_vmaddr
 from symsynd.demangle import demangle_symbol
 from symsynd.exceptions import SymbolicationError
@@ -63,7 +63,8 @@ class Driver(object):
 
         try:
             with self._lock:
-                sym = self.symbolizer.symbolize(dsym_path, addr, cpu_name)
+                with timedsection('symbolize'):
+                    sym = self.symbolizer.symbolize(dsym_path, addr, cpu_name)
             if sym[0] is None:
                 raise SymbolicationError('Symbolizer could not find symbol')
         except SymbolicationError:

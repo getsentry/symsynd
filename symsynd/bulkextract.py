@@ -10,7 +10,6 @@ import subprocess
 from symsynd.utils import which, progressbar
 from symsynd.macho.arch import get_macho_image_info
 from symsynd.macho.util import is_macho_file
-from symsynd.driver import devnull
 
 
 _base_path_segment = re.compile(r'^(\d+)\.(\d+)(?:\.(\d+))? \(([a-zA-Z0-9]+)\)$')
@@ -94,6 +93,7 @@ class BulkExtractor(object):
         images = dict((x['cpu_name'], x) for x in get_macho_image_info(filename))
 
         def generate():
+            devnull = open('/dev/null', 'rb+')
             for arch, info in images.iteritems():
                 args = [self.nm_path, '-numeric-sort', filename,
                         '-arch', arch]

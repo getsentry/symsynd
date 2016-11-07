@@ -16,8 +16,11 @@ def _demangle(func, sym, buffer=None):
         return ffi.string(buffer).decode('utf-8', 'replace')
 
 
-def demangle_swift_symbol(symbol):
-    return _demangle(lib.demangle_swift, symbol)
+def demangle_swift_symbol(symbol, simplified=False):
+    if simplified:
+        return _demangle(lib.demangle_swift_simplified, symbol)
+    else:
+        return _demangle(lib.demangle_swift, symbol)
 
 
 def demangle_cpp_symbol(symbol):

@@ -17,11 +17,11 @@ def _demangle(func, sym, buffer=None, simplified=False):
 
 
 def demangle_swift_symbol(symbol, simplified=False):
-    return _demangle(lib.demangle_swift, symbol, simplified)
+    return _demangle(lib.demangle_swift, symbol, simplified=simplified)
 
 
 def demangle_cpp_symbol(symbol, simplified=False):
-    return _demangle(lib.demangle_cpp, symbol, simplified)
+    return _demangle(lib.demangle_cpp, symbol, simplified=simplified)
 
 
 def demangle_symbol(symbol, simplified=False):

@@ -6,7 +6,7 @@ def _make_buffer():
     return ffi.new('char[16000]')
 
 
-def _demangle(func, sym, buffer=None, simplified=Flase):
+def _demangle(func, sym, buffer=None, simplified=False):
     if buffer is None:
         buffer = _make_buffer()
     if isinstance(sym, text_type):

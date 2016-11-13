@@ -45,7 +45,8 @@ class Driver(object):
         self._closed = True
 
     def symbolize(self, dsym_path, image_vmaddr, image_addr,
-                  instruction_addr, cpu_name, uuid=None, silent=True):
+                  instruction_addr, cpu_name, uuid=None, silent=True,
+                  demangle=True):
         if self._closed:
             raise RuntimeError('Symbolizer is closed')
         if not is_valid_cpu_name(cpu_name):
@@ -72,8 +73,12 @@ class Driver(object):
                 raise
             sym = (None, None, 0, 0)
 
+        symbol_name = sym[0]
+        if demangle:
+            symbol_name = demangle_symbol(symbol_name)
+
         return {
-            'symbol_name': demangle_symbol(sym[0]),
+            'symbol_name': symbol_name,
             'filename': sym[1],
             'line': sym[2],
             'column': sym[3],

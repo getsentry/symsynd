@@ -23,9 +23,11 @@ extern "C" {
  * @param symbol The symbol to demangle (if possible).
  * @param buffer Some memory to hold the null-terminated demangled string.
  * @param buffer_length The length of the buffer.
+ * @param simplified it set to true, a simplified output will be generated.
  * @return true if demangling was successful.
  */
-int demangle_swift(const char *symbol, char *buffer, size_t buffer_length);
+int demangle_swift(const char *symbol, char *buffer, size_t buffer_length,
+                   int simplified);
 
 /**
  * Demangle a C++ symbol.
@@ -38,9 +40,12 @@ int demangle_swift(const char *symbol, char *buffer, size_t buffer_length);
  * @param symbol The symbol to demangle (if possible).
  * @param buffer Some memory to hold the null-terminated demangled string.
  * @param buffer_length The length of the buffer.
+ * @param simplified it set to true, a simplified output will be generated
+ *                   (this is not actually doing anything for C++)
  * @return true if demangling was successful.
  */
-int demangle_cpp(const char *symbol, char *buffer, size_t buffer_length);
+int demangle_cpp(const char *symbol, char *buffer, size_t buffer_length,
+                 int simplified);
 
 #ifdef __cplusplus
 }

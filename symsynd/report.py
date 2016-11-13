@@ -85,13 +85,14 @@ class ReportSymbolizer(object):
         with timedsection('findimages'):
             self.images = find_debug_images(dsym_paths, binary_images)
 
-    def symbolize_frame(self, frame, silent=True):
+    def symbolize_frame(self, frame, silent=True, demangle=True):
         img = self.images.get(frame['object_addr'])
         if img is not None:
             rv = self.driver.symbolize(
                 img['dsym_path'], img['image_vmaddr'],
                 img['image_addr'], frame['instruction_addr'],
-                img['cpu_name'], img['uuid'], silent=silent)
+                img['cpu_name'], img['uuid'], silent=silent,
+                demangle=demangle)
 
             # Only return this if we found the symbol
             if rv['symbol_name'] is not None:
@@ -99,9 +100,9 @@ class ReportSymbolizer(object):
                 frame.update(rv)
                 return frame
 
-    def symbolize_backtrace(self, backtrace):
+    def symbolize_backtrace(self, backtrace, demangle=True):
         rv = []
         for frame in backtrace:
-            new_frame = self.symbolize_frame(frame)
+            new_frame = self.symbolize_frame(frame, demangle=demangle)
             rv.append(new_frame or frame)
         return rv

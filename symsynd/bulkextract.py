@@ -76,6 +76,8 @@ def get_sdk_info_from_path(sdk_name, path):
             return {
                 'sdk_name': sdk_name,
                 'dsym_type': 'macho',
+                'watch_hardware_major': int(tup[0]),
+                'watch_hardware_minor': int(tup[1]),
                 'version_major': int(tup[2]),
                 'version_minor': int(tup[3]),
                 'version_patchlevel': int(tup[4] or 0),

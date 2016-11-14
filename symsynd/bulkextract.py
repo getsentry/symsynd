@@ -13,6 +13,7 @@ from symsynd.macho.util import is_macho_file
 
 
 _base_path_segment = re.compile(r'^(\d+)\.(\d+)(?:\.(\d+))? \(([a-zA-Z0-9]+)\)$')
+_advanced_base_path_segment = re.compile(r'^(Watch\d+,\d+) (\d+)\.(\d+)(?:\.(\d+))? \(([a-zA-Z0-9]+)\)$')
 
 
 NM_SEARCHPATHS = []
@@ -59,6 +60,7 @@ def get_sdk_info_from_path(sdk_name, path):
         if piece.endswith('.zip'):
             piece = piece[:-4]
         match = _base_path_segment.match(piece)
+        advanced_match = _advanced_base_path_segment.match(piece)
         if match is not None:
             tup = match.groups()
             return {
@@ -68,6 +70,17 @@ def get_sdk_info_from_path(sdk_name, path):
                 'version_minor': int(tup[1]),
                 'version_patchlevel': int(tup[2] or 0),
                 'version_build': tup[3],
+            }
+        elif advanced_match is not None:
+            tup = advanced_match.groups()
+            return {
+                'sdk_name': sdk_name,
+                'dsym_type': 'macho',
+                'sdk_identifier': tup[0],
+                'version_major': int(tup[1]),
+                'version_minor': int(tup[2]),
+                'version_patchlevel': int(tup[3] or 0),
+                'version_build': tup[4],
             }
 
 

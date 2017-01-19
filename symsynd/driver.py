@@ -60,7 +60,7 @@ class Driver(object):
         image_addr = parse_addr(image_addr)
         instruction_addr = parse_addr(instruction_addr)
 
-        addr = image_vmaddr + instruction_addr - image_addr
+        addr = image_vmaddr + instruction_addr - image_addr - 1
 
         try:
             with self._lock:

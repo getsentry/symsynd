@@ -413,7 +413,7 @@ def test_swift(res_path, driver):
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
     assert bt[22]['line'] == 36
-    assert bt[22]['symbol_name'] == '@objc CrashLibiOS.CRLCrashSwift.crash (CrashLibiOS.CRLCrashSwift)() -> ()'
+    assert bt[22]['symbol_name'] == 'CrashLibiOS.CRLCrashSwift.crash () -> ()'
     assert bt[22]['filename'].rsplit('/', 1)[-1] == 'CRLCrashSwift.swift'
     assert bt[21]['line'] == 53
     assert bt[21]['symbol_name'] == '-[CRLDetailViewController doCrash]'

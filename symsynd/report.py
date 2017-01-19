@@ -86,7 +86,8 @@ class ReportSymbolizer(object):
             self.images = find_debug_images(dsym_paths, binary_images)
 
     def symbolize_frame(self, frame, silent=True, demangle=True):
-        img = self.images.get(frame['object_addr'])
+        img_addr = frame.get('object_addr') or frame.get('image_addr')
+        img = self.images.get(img_addr)
         if img is not None:
             rv = self.driver.symbolize(
                 img['dsym_path'], img['image_vmaddr'],

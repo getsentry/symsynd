@@ -31,12 +31,6 @@ PACKAGE = 'symsynd'
 EXT_EXT = sys.platform == 'darwin' and '.dylib' or '.so'
 
 
-# If we're building on OS X we want to make sure that our deployment
-# target is set to 10.9.
-if sys.platform == 'darwin':
-    os.environ.setdefault('MACOSX_DEPLOYMENT_TARGET', '10.9')
-
-
 def build_libsymboizer(base_path):
     lib_path = os.path.join(base_path, '_libsymbolizer.so')
     here = os.path.abspath(os.path.dirname(__file__))

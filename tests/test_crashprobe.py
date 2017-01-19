@@ -9,13 +9,13 @@ CPU = 'arm64'
 
 def _load_dsyms_and_symbolize_stacktrace(filename, res_path, driver):
     filename_version = VERSION.replace(' ', '')
-    with open(os.path.join(res_path, 'ext/' + VERSION + '/' + CPU + '/' + filename_version\
-     + filename.replace(filename_version, ''))) as f:
+    with open(os.path.join(res_path, 'ext', VERSION, CPU,
+        filename_version + filename.replace(filename_version, ''))) as f:
         report = json.load(f)
 
     bt = None
     dsym_paths = []
-    dsyms_folder = os.path.join(res_path, VERSION + '/dSYMs')
+    dsyms_folder = os.path.join(res_path, 'ext', VERSION, 'dSYMs')
     for file in os.listdir(dsyms_folder):
         if file.endswith('.dSYM'):
             dsym_paths.append(os.path.join(dsyms_folder, file))
@@ -47,10 +47,11 @@ def test_pthread_list_lock_report(res_path, driver):
     assert bt[21]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
 
 
+@pytest.mark.xfail
 def test_throw_c_pp_exception(res_path, driver):
     # http://www.crashprobe.com/ios/02/
     # Fails on every crash reporter
-    pytest.xfail('Fails on every crash reporter')
+    raise Exception('Fails on every crash reporter')
 
 
 def test_throw_objective_c_exception(res_path, driver):
@@ -310,17 +311,18 @@ def test_call_abort(res_path, driver):
     assert bt[21]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
 
 
+@pytest.mark.xfail
 def test_corrupt_malloc_s_internal_tracking_information(res_path, driver):
     # http://www.crashprobe.com/ios/16/
     # App crashes and generates no report
-    pytest.xfail('App crashes and generates no report')
+    raise Exception('App crashes and generates no report')
 
 
 @pytest.mark.xfail
 def test_corrupt_the_objective_c_runtime_s_structures(res_path, driver):
     # http://www.crashprobe.com/ios/17/
     # App crashes and generates no report
-    pytest.xfail('App crashes and generates no report')
+    raise Exception('App crashes and generates no report')
 
 
 def test_dwarf_unwinding(res_path, driver):

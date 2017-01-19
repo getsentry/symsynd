@@ -1,0 +1,3 @@
+[submodule "tests/res/ext"]
+	path = tests/res/ext
+	url = https://github.com/getsentry/symsynd-test-resources

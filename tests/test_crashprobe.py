@@ -3,19 +3,24 @@ import json
 import pytest
 from symsynd.report import ReportSymbolizer
 
-VERSION = '1.4.1 (201701191305)'
-CPU = 'arm64'
+
+TEST_PARAMETER = [
+('1.4.1 (201701191305)', 'arm64'),
+('1.4.1 (201701191305)', 'armv7')
+]
 
 
-def _load_dsyms_and_symbolize_stacktrace(filename, res_path, driver):
-    filename_version = VERSION.replace(' ', '')
-    with open(os.path.join(res_path, 'ext', VERSION, CPU,
-        filename_version + filename.replace(filename_version, ''))) as f:
+def _load_dsyms_and_symbolize_stacktrace(filename, version, cpu, res_path, driver):
+    filename_version = version.replace(' ', '')
+    path = os.path.join(res_path, 'ext', version, cpu, filename)
+    if not os.path.isfile(path):
+        pytest.skip("not test file found")
+    with open(path) as f:
         report = json.load(f)
 
     bt = None
     dsym_paths = []
-    dsyms_folder = os.path.join(res_path, 'ext', VERSION, 'dSYMs')
+    dsyms_folder = os.path.join(res_path, 'ext', version, 'dSYMs')
     for file in os.listdir(dsyms_folder):
         if file.endswith('.dSYM'):
             dsym_paths.append(os.path.join(dsyms_folder, file))
@@ -27,10 +32,12 @@ def _load_dsyms_and_symbolize_stacktrace(filename, res_path, driver):
             bt = rep.symbolize_backtrace(thread['stacktrace']['frames'])
     return bt, report
 
-
-def test_pthread_list_lock_report(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_pthread_list_lock_report(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-Crash with _pthread_list_lock held-B25F873123CC4FA0A38CC487ABEF291D.json',
+        'Crash with _pthread_list_lock held.json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -48,15 +55,19 @@ def test_pthread_list_lock_report(res_path, driver):
 
 
 @pytest.mark.xfail
-def test_throw_c_pp_exception(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_throw_c_pp_exception(res_path, driver, version, cpu):
     # http://www.crashprobe.com/ios/02/
     # Fails on every crash reporter
     raise Exception('Fails on every crash reporter')
 
 
-def test_throw_objective_c_exception(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_throw_objective_c_exception(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-Throw Objective-C exception-F5C38540F071472192CFCA5F5CB602FC.json',
+        'Throw Objective-C exception.json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -68,17 +79,21 @@ def test_throw_objective_c_exception(res_path, driver):
     assert bt is not None
     if 'NSGenericException: An uncaught exception! SCREAM.' not in report['exception']['values'][0]['value']:
         pytest.xfail('Crash reason not found')
-    assert bt[22]['symbol_name'] == '-[CRLCrashObjCException crash]'
-    assert bt[22]['line'] == 41
-    assert bt[22]['filename'].rsplit('/', 1)[-1] == 'CRLCrashObjCException.m'
-    assert bt[21]['symbol_name'] == '-[CRLDetailViewController doCrash]'
-    assert bt[21]['line'] == 53
-    assert bt[21]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
+    index = len(bt)
+    assert bt[index - 3]['symbol_name'] == '-[CRLCrashObjCException crash]'
+    assert bt[index - 3]['line'] == 41
+    assert bt[index - 3]['filename'].rsplit('/', 1)[-1] == 'CRLCrashObjCException.m'
+    assert bt[index - 4]['symbol_name'] == '-[CRLDetailViewController doCrash]'
+    assert bt[index - 4]['line'] == 53
+    assert bt[index - 4]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
 
 
-def test_access_a_non_object_as_an_object(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_access_a_non_object_as_an_object(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-Access a non-object as an object-4704C3CC7E5645A7834B4075094100E9.json',
+        'Access a non-object as an object.json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -95,9 +110,12 @@ def test_access_a_non_object_as_an_object(res_path, driver):
     assert bt[21]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
 
 
-def test_crash_inside_objc_msg_send(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_crash_inside_objc_msg_send(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-Crash inside objc_msgSend()-A111F4B5D10D4104B3F4BC1FFF477A6D.json',
+        'Crash inside objc_msgSend().json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -114,9 +132,12 @@ def test_crash_inside_objc_msg_send(res_path, driver):
     assert bt[21]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
 
 
-def test_message_a_released_object(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_message_a_released_object(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-Message a released object-86624D03EE1B466DBF7749116939B221.json',
+        'Message a released object.json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -137,9 +158,12 @@ def test_message_a_released_object(res_path, driver):
     assert bt[20]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
 
 
-def test_write_to_a_read_only_page(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_write_to_a_read_only_page(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-Write to a read-only page-D3FA9EF36DCD4A90B5A0CAF8C12ED999.json',
+        'Write to a read-only page.json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -156,9 +180,12 @@ def test_write_to_a_read_only_page(res_path, driver):
     assert bt[21]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
 
 
-def test_execute_a_privileged_instruction(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_execute_a_privileged_instruction(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-Execute a privileged instruction-940551E8FDCB4F7EBD3B7BB2DBD5C697.json',
+        'Execute a privileged instruction.json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -176,9 +203,12 @@ def test_execute_a_privileged_instruction(res_path, driver):
     assert bt[21]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
 
 
-def test_execute_an_undefined_instruction(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_execute_an_undefined_instruction(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-Execute an undefined instruction-3E6925CDE19A49D99EC3D1751EBC8D08.json',
+        'Execute an undefined instruction.json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -196,9 +226,12 @@ def test_execute_an_undefined_instruction(res_path, driver):
     assert bt[21]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
 
 
-def test_dereference_a_null_pointer(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_dereference_a_null_pointer(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-Dereference a NULL pointer-A7E0CB80A49F48528A27FF20BA279397.json',
+    'Dereference a NULL pointer.json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -215,9 +248,12 @@ def test_dereference_a_null_pointer(res_path, driver):
     assert bt[21]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
 
 
-def test_dereference_a_bad_pointer(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_dereference_a_bad_pointer(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-Dereference a bad pointer-120F22EC7CE14D088B0DA04BC78A4BFB.json',
+        'Dereference a bad pointer.json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -235,9 +271,12 @@ def test_dereference_a_bad_pointer(res_path, driver):
     assert bt[21]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
 
 
-def test_jump_into_an_nx_page(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_jump_into_an_nx_page(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-Jump into an NX page-B511C6F2659F4FB5BA07E14D7D6A7B26.json',
+    'Jump into an NX page.json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -254,9 +293,12 @@ def test_jump_into_an_nx_page(res_path, driver):
     assert bt[21]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
 
 
-def test_stack_overflow(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_stack_overflow(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-Stack overflow-D6D8C3E5738E48119007E9C48D8C26E9.json',
+        'Stack overflow.json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -273,9 +315,12 @@ def test_stack_overflow(res_path, driver):
     assert bt[29]['filename'].rsplit('/', 1)[-1] == 'CRLCrashStackGuard.m'
 
 
-def test_call_builtin_trap(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_call_builtin_trap(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-Call __builtin_trap()-0A27E23FB60E446197F6B830921BB287.json',
+        'Call __builtin_trap().json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -292,9 +337,12 @@ def test_call_builtin_trap(res_path, driver):
     assert bt[21]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
 
 
-def test_call_abort(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_call_abort(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-Call abort()-3784D09D3CEA446283B8938EAB71D37E.json',
+        'Call abort().json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -312,22 +360,27 @@ def test_call_abort(res_path, driver):
 
 
 @pytest.mark.xfail
-def test_corrupt_malloc_s_internal_tracking_information(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_corrupt_malloc_s_internal_tracking_information(res_path, driver, version, cpu):
     # http://www.crashprobe.com/ios/16/
     # App crashes and generates no report
     raise Exception('App crashes and generates no report')
 
 
 @pytest.mark.xfail
-def test_corrupt_the_objective_c_runtime_s_structures(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_corrupt_the_objective_c_runtime_s_structures(res_path, driver, version, cpu):
     # http://www.crashprobe.com/ios/17/
     # App crashes and generates no report
     raise Exception('App crashes and generates no report')
 
 
-def test_dwarf_unwinding(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_dwarf_unwinding(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-DWARF Unwinding-BBF334A7B61D48A7BF854373161C9AE1.json',
+        'DWARF Unwinding.json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -350,9 +403,12 @@ def test_dwarf_unwinding(res_path, driver):
     assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
 
 
-def test_overwrite_link_register_then_crash(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_overwrite_link_register_then_crash(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-Overwrite link register, then crash-06F17D84FA1A40C78F388F9A4CDE940D.json',
+        'Overwrite link register, then crash.json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -369,9 +425,12 @@ def test_overwrite_link_register_then_crash(res_path, driver):
     assert bt[21]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
 
 
-def test_smash_the_bottom_of_the_stack(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_smash_the_bottom_of_the_stack(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-Smash the bottom of the stack-7FFA9355A6014343AB16AF1140F0CA7B.json',
+        'Smash the bottom of the stack.json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -385,9 +444,12 @@ def test_smash_the_bottom_of_the_stack(res_path, driver):
     assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashSmashStackBottom.m'
 
 
-def test_smash_the_top_of_the_stack(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_smash_the_top_of_the_stack(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-Smash the top of the stack-04DADC5BB6B14C9E86DBDE9E2535485A.json',
+        'Smash the top of the stack.json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -401,9 +463,12 @@ def test_smash_the_top_of_the_stack(res_path, driver):
     assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashSmashStackTop.m'
 
 
-def test_swift(res_path, driver):
+@pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+def test_swift(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
-        '1.4.1(201701191305)-Swift-FA3B2181D3FB40D99C83C8BFB574B532.json',
+        'Swift.json',
+        version,
+        cpu,
         res_path,
         driver
     )
@@ -412,7 +477,7 @@ def test_swift(res_path, driver):
     # @objc CrashLibiOS.CRLCrashSwift.crash (CrashLibiOS.CRLCrashSwift)() -> () (CRLCrashSwift.swift:36)
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
-    assert bt[22]['symbol_name'] == 'CrashLibiOS.CRLCrashSwift.crash () -> ()'
+    assert bt[22]['symbol_name'] == '@objc CrashLibiOS.CRLCrashSwift.crash () -> ()'
     assert bt[22]['line'] == 36
     assert bt[22]['filename'].rsplit('/', 1)[-1] == 'CRLCrashSwift.swift'
     assert bt[21]['symbol_name'] == '-[CRLDetailViewController doCrash]'

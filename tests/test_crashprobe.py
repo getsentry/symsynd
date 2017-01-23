@@ -67,7 +67,7 @@ def test_pthread_list_lock_report(res_path, driver, version, cpu):
     assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashAsyncSafeThread.m'
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(reason='C++ Exception handling doesn\'t work')
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
 def test_throw_c_pp_exception(res_path, driver, version, cpu):
     # http://www.crashprobe.com/ios/02/
@@ -384,7 +384,7 @@ def test_call_abort(res_path, driver, version, cpu):
     assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashAbort.m'
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(reason='App crash does not generate any report')
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
 def test_corrupt_malloc_s_internal_tracking_information(res_path, driver, version, cpu):
     # http://www.crashprobe.com/ios/16/
@@ -392,7 +392,7 @@ def test_corrupt_malloc_s_internal_tracking_information(res_path, driver, versio
     raise Exception('App crashes and generates no report')
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(reason='App crash does not generate any report')
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
 def test_corrupt_the_objective_c_runtime_s_structures(res_path, driver, version, cpu):
     # http://www.crashprobe.com/ios/17/

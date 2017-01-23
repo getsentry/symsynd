@@ -24,6 +24,15 @@ def normalize_dsym_path(p):
     return p
 
 
+def find_instruction(instruction_addr, cpu_name):
+    if cpu_name.startswith('arm64'):
+        return instruction_addr & -4
+    elif cpu_name.startswith('arm'):
+        return instruction_addr & -2
+    else:
+        return instruction_addr
+
+
 class Driver(object):
 
     def __init__(self, symbolizer_path=None):
@@ -59,6 +68,7 @@ class Driver(object):
 
         image_addr = parse_addr(image_addr)
         instruction_addr = parse_addr(instruction_addr)
+        instruction_addr = find_instruction(instruction_addr, cpu_name) - 1
 
         addr = image_vmaddr + instruction_addr - image_addr
 
@@ -67,6 +77,7 @@ class Driver(object):
                 with timedsection('symbolize'):
                     sym = self.symbolizer.symbolize(dsym_path, addr, cpu_name)
             if sym[0] is None:
+
                 raise SymbolicationError('Symbolizer could not find symbol')
         except SymbolicationError:
             if not silent:

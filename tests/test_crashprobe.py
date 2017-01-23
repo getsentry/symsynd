@@ -170,7 +170,7 @@ def test_message_a_released_object(res_path, driver, version, cpu):
     assert bt[2]['line'] == 49
     assert bt[2]['filename'].rsplit('/', 1)[-1] == 'CRLCrashReleasedObject.m'
     assert bt[4]['symbol_name'] == '__31-[CRLCrashReleasedObject crash]_block_invoke'
-    assert bt[4]['line'] == 51
+    assert bt[4]['line'] == cpu == 'arm64' and 51 or 53
     assert bt[4]['filename'].rsplit('/', 1)[-1] == 'CRLCrashReleasedObject.m'
 
 

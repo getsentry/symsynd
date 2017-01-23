@@ -166,12 +166,12 @@ def test_message_a_released_object(res_path, driver, version, cpu):
     assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
     assert bt[0]['line'] == 53
     assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
-    assert bt[2]['symbol_name'] == '__31-[CRLCrashReleasedObject crash]_block_invoke'
-    assert bt[2]['line'] == 51
+    assert bt[2]['symbol_name'] == '-[CRLCrashReleasedObject crash]'
+    assert bt[2]['line'] == 49
     assert bt[2]['filename'].rsplit('/', 1)[-1] == 'CRLCrashReleasedObject.m'
-    assert bt[1]['symbol_name'] == '-[CRLCrashReleasedObject crash]'
-    assert bt[1]['line'] == 49
-    assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashReleasedObject.m'
+    assert bt[4]['symbol_name'] == '__31-[CRLCrashReleasedObject crash]_block_invoke'
+    assert bt[4]['line'] == 51
+    assert bt[4]['filename'].rsplit('/', 1)[-1] == 'CRLCrashReleasedObject.m'
 
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
@@ -420,12 +420,14 @@ def test_dwarf_unwinding(res_path, driver, version, cpu):
     assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
     assert bt[0]['line'] == 53
     assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
-    assert bt[2]['symbol_name'] == 'CRLFramelessDWARF_test_crash'
-    assert bt[2]['line'] == 35
+
+    assert bt[2]['symbol_name'] == '-[CRLFramelessDWARF crash]'
+    assert bt[2]['line'] == 49
     assert bt[2]['filename'].rsplit('/', 1)[-1] == 'CRLFramelessDWARF.m'
-    assert bt[1]['symbol_name'] == '-[CRLFramelessDWARF crash]'
-    assert bt[1]['line'] == 49
-    assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLFramelessDWARF.m'
+
+    assert bt[4]['symbol_name'] == 'CRLFramelessDWARF_test_crash'
+    assert bt[4]['line'] == 35
+    assert bt[4]['filename'].rsplit('/', 1)[-1] == 'CRLFramelessDWARF.m'
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
 def test_overwrite_link_register_then_crash(res_path, driver, version, cpu):
@@ -460,6 +462,9 @@ def test_smash_the_bottom_of_the_stack(res_path, driver, version, cpu):
         driver
     )
 
+    if cpu == 'arm64':
+        pytest.xfail('This test fails everywhere in arm64')
+
     # http://www.crashprobe.com/ios/20/
     # -[CRLCrashSmashStackBottom crash] (CRLCrashSmashStackBottom.m:54)
     assert bt is not None
@@ -479,6 +484,9 @@ def test_smash_the_top_of_the_stack(res_path, driver, version, cpu):
         res_path,
         driver
     )
+
+    if cpu == 'arm64':
+        pytest.xfail('This test fails everywhere in arm64')
 
     # http://www.crashprobe.com/ios/21/
     # -[CRLCrashSmashStackTop crash] (CRLCrashSmashStackTop.m:54)

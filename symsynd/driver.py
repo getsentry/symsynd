@@ -24,13 +24,25 @@ def normalize_dsym_path(p):
     return p
 
 
-def find_instruction(instruction_addr, cpu_name):
+def find_instruction(addr, cpu_name):
     if cpu_name.startswith('arm64'):
-        return instruction_addr & -4
+        return (addr & -4) - 1
     elif cpu_name.startswith('arm'):
-        return instruction_addr & -2
+        return (addr & -2) - 1
     else:
-        return instruction_addr
+        return addr - 1
+
+
+def convert_symbol(sym, demangle=True):
+    symbol_name = sym[0]
+    if demangle:
+        symbol_name = demangle_symbol(symbol_name)
+    return {
+        'symbol_name': symbol_name,
+        'filename': sym[1],
+        'line': sym[2],
+        'column': sym[3],
+    }
 
 
 class Driver(object):
@@ -54,12 +66,18 @@ class Driver(object):
         self._closed = True
 
     def symbolize(self, dsym_path, image_vmaddr, image_addr,
-                  instruction_addr, cpu_name, uuid=None, silent=True,
-                  demangle=True):
+                  instruction_addr, cpu_name, silent=True,
+                  demangle=True, symbolize_inlined=False):
+        """Symbolizes a single frame based on the information provided.  If
+        the symbolication fails `None` is returned in default more or a
+        an exception is raised if `silent` is disabled.
+
+        Additionally if `symbolize_inlined` is set to `True` then a list of
+        frames is returned instead which might contain inlined frames.  In
+        that case the return value might be an empty list instead.
+        """
         if self._closed:
             raise RuntimeError('Symbolizer is closed')
-        if not is_valid_cpu_name(cpu_name):
-            raise ValueError('"%s" is not a valid cpu name' % cpu_name)
         dsym_path = normalize_dsym_path(dsym_path)
 
         image_vmaddr = parse_addr(image_vmaddr)
@@ -68,30 +86,27 @@ class Driver(object):
 
         image_addr = parse_addr(image_addr)
         instruction_addr = parse_addr(instruction_addr)
-        instruction_addr = find_instruction(instruction_addr, cpu_name) - 1
-
-        addr = image_vmaddr + instruction_addr - image_addr
 
         try:
+            if not is_valid_cpu_name(cpu_name):
+                raise SymbolicationError('"%s" is not a valid cpu name' % cpu_name)
+
+            instruction_addr = find_instruction(instruction_addr, cpu_name)
+            addr = image_vmaddr + instruction_addr - image_addr
+
             with self._lock:
                 with timedsection('symbolize'):
-                    sym = self.symbolizer.symbolize(dsym_path, addr, cpu_name)
-            if sym[0] is None:
-
-                raise SymbolicationError('Symbolizer could not find symbol')
+                    if symbolize_inlined:
+                        syms = self.symbolizer.symbolize_inlined(
+                            dsym_path, addr, cpu_name)
+                        return [convert_symbol(sym, demangle) for sym in syms]
+                    else:
+                        sym = self.symbolizer.symbolize(
+                            dsym_path, addr, cpu_name)
+                        return convert_symbol(sym, demangle)
         except SymbolicationError:
             if not silent:
                 raise
-            sym = (None, None, 0, 0)
-
-        symbol_name = sym[0]
-        if demangle:
-            symbol_name = demangle_symbol(symbol_name)
-
-        return {
-            'symbol_name': symbol_name,
-            'filename': sym[1],
-            'line': sym[2],
-            'column': sym[3],
-            'uuid': uuid,
-        }
+            if symbolize_inlined:
+                return []
+            return None

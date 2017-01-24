@@ -144,6 +144,49 @@ llvm_symbolizer_symbolize(
     return rv;
 }
 
+llvm_symbol_t *
+llvm_symbolizer_symbolize(
+    llvm_symbolizer_t *self,
+    const char *module,
+    unsigned long long offset,
+    llvm_symbol_t ***sym_out,
+    size_t *sym_count_out)
+{
+    // try to symbolicate or fail
+    llvm_symbol_t *tmp = (llvm_symbol_t *)malloc(sizeof(llvm_symbol_t));
+    memset(tmp, 0, sizeof(llvm_symbol_t));
+    auto res_or_err = self->symbolizer->symbolizeInlinedCode(module, offset);
+    if (sym_failed(res_or_err, tmp)) {
+        return tmp;
+    }
+
+    auto res = res_or_err.get();
+    size_t symCount = (size_t)res.getNumberOfFrames();
+
+    llvm_symbol_t **syms = (llvm_symbol_t **)malloc(
+        sizeof(llvm_symbolizer_t *) * symCount);
+
+    for (size_t i = 0; i < symCount; i++) {
+        auto symRes = res.getFrame(i);
+        llvm_symbol_t *sym = tmp;
+        if (!sym) {
+            sym = (llvm_symbol_t *)malloc(sizeof(llvm_symbol_t));
+            memset(sym, 0, sizeof(llvm_symbol_t));
+        } else {
+            tmp = 0;
+        }
+        sym->name = strdup(symRes.FunctionName.c_str());
+        sym->filename = strdup(symRes.FileName.c_str());
+        sym->lineno = symRes.Line;
+        sym->column = symRes.Column;
+        syms[i] = sym;
+    }
+
+    *sym_out = syms;
+    *sym_count_out = symCount;
+    return 0;
+}
+
 void
 llvm_symbol_free(llvm_symbol_t *sym)
 {
@@ -154,4 +197,18 @@ llvm_symbol_free(llvm_symbol_t *sym)
     free(sym->filename);
     free(sym->error);
     free(sym);
+}
+
+void
+llvm_bulk_symbol_free(llvm_symbol_t **syms, size_t count)
+{
+    if (!syms) {
+        return;
+    }
+
+    for (size_t i = 0; i < count; i++) {
+        llvm_symbol_free(syms[count]);
+    }
+
+    free(syms);
 }

@@ -32,8 +32,15 @@ llvm_symbol_t *llvm_symbolizer_symbolize(
     const char *module,
     unsigned long long offset,
     int is_data);
+llvm_symbol_t *llvm_symbolizer_symbolize_inlined(
+    llvm_symbolizer_t *sym,
+    const char *module,
+    unsigned long long offset,
+    llvm_symbol_t ***sym_out,
+    size_t *sym_count_out);
 
 void llvm_symbol_free(llvm_symbol_t *sym);
+void llvm_bulk_symbol_free(llvm_symbol_t **syms, size_t count);
 
 #ifdef __cplusplus
 }

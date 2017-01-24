@@ -85,25 +85,49 @@ class ReportSymbolizer(object):
         with timedsection('findimages'):
             self.images = find_debug_images(dsym_paths, binary_images)
 
-    def symbolize_frame(self, frame, silent=True, demangle=True):
+    def symbolize_frame(self, frame, silent=True, demangle=True,
+                        symbolize_inlined=False):
         img_addr = frame.get('object_addr') or frame.get('image_addr')
         img = self.images.get(img_addr)
-        if img is not None:
-            rv = self.driver.symbolize(
-                img['dsym_path'], img['image_vmaddr'],
-                img['image_addr'], frame['instruction_addr'],
-                img['cpu_name'], img['uuid'], silent=silent,
-                demangle=demangle)
+        if img is None:
+            if symbolize_inlined:
+                return []
+            return
 
-            # Only return this if we found the symbol
-            if rv['symbol_name'] is not None:
-                frame = dict(frame)
-                frame.update(rv)
-                return frame
+        rv = self.driver.symbolize(
+            img['dsym_path'], img['image_vmaddr'],
+            img['image_addr'], frame['instruction_addr'],
+            img['cpu_name'], silent=silent,
+            demangle=demangle, symbolize_inlined=symbolize_inlined)
 
-    def symbolize_backtrace(self, backtrace, demangle=True):
+        if not symbolize_inlined:
+            if rv['symbol_name'] is None:
+                return
+            return dict(frame, **rv)
+
+        sym_rv = []
+        for frame_rv in rv:
+            if frame_rv['symbol_name'] is not None:
+                sym_rv.append(dict(frame, **frame_rv))
+            else:
+                sym_rv.append(dict(frame))
+
+        return sym_rv
+
+    def symbolize_backtrace(self, backtrace, demangle=True,
+                            symbolize_inlined=False):
         rv = []
         for frame in backtrace:
-            new_frame = self.symbolize_frame(frame, demangle=demangle)
-            rv.append(new_frame or frame)
+            if symbolize_inlined:
+                new_frames = self.symbolize_frame(frame, demangle=demangle,
+                                                  symbolize_inlined=True)
+                if new_frames:
+                    rv.extend(new_frames)
+                    continue
+            else:
+                new_frame = self.symbolize_frame(frame, demangle=demangle)
+                if new_frame is not None:
+                    rv.append(new_frame)
+                    continue
+            rv.append(frame)
         return rv

@@ -33,6 +33,15 @@ def _symstr(ptr):
     return val.decode('utf-8', 'replace')
 
 
+def _make_sym_tuple(rv):
+    return (
+        _symstr(rv.name),
+        _symstr(rv.filename),
+        rv.lineno,
+        rv.column,
+    )
+
+
 class Symbolizer(object):
 
     def __init__(self):
@@ -56,7 +65,7 @@ class Symbolizer(object):
         except Exception:
             pass
 
-    def symbolize(self, module, offset, arch, is_data=False):
+    def symbolize(self, module, offset, arch=None, is_data=False):
         if self._ptr is None:
             raise RuntimeError('Symbolizer closed')
 
@@ -69,11 +78,32 @@ class Symbolizer(object):
             if rv.error:
                 raise SymbolicationError(_symstr(rv.error))
 
-            return (
-                _symstr(rv.name),
-                _symstr(rv.filename),
-                rv.lineno,
-                rv.column,
-            )
+            return _make_sym_tuple(rv)
         finally:
             lib.llvm_symbol_free(rv)
+
+    def symbolize_inlined(self, module, offset, arch=None):
+        if self._ptr is None:
+            raise RuntimeError('Symbolizer closed')
+
+        if arch is not None:
+            module += ':' + arch
+
+        sym_out = ffi.new('llvm_symbol_t ***')
+        sym_count_out = ffi.new('size_t *')
+
+        err = lib.llvm_symbolizer_symbolize_inlined(
+            self._ptr, to_bytes(module), offset, sym_out, sym_count_out)
+        try:
+            if err:
+                assert err.error, 'Error witohut error indicated'
+                raise SymbolicationError(_symstr(err.error))
+
+            rv = []
+            for count in xrange(sym_count_out[0]):
+                rv.append(_make_sym_tuple(sym_out[0][count]))
+            lib.llvm_bulk_symbol_free(sym_out[0], sym_count_out[0])
+
+            return rv
+        finally:
+            lib.llvm_symbol_free(err)

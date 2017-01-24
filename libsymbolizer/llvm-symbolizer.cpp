@@ -145,7 +145,7 @@ llvm_symbolizer_symbolize(
 }
 
 llvm_symbol_t *
-llvm_symbolizer_symbolize(
+llvm_symbolizer_symbolize_inlined(
     llvm_symbolizer_t *self,
     const char *module,
     unsigned long long offset,
@@ -207,7 +207,7 @@ llvm_bulk_symbol_free(llvm_symbol_t **syms, size_t count)
     }
 
     for (size_t i = 0; i < count; i++) {
-        llvm_symbol_free(syms[count]);
+        llvm_symbol_free(syms[i]);
     }
 
     free(syms);

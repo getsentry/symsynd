@@ -7,6 +7,7 @@
 .eggs
 .Dockerfile*
 .build-venvs
+symsynd/_symbolizer.py
 build
 dist
 llvm

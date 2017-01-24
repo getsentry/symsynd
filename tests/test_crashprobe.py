@@ -29,7 +29,8 @@ def _load_dsyms_and_symbolize_stacktrace(filename, version, cpu, res_path, drive
     for thread in report['threads']['values']:
         if thread['crashed']:
             assert bt is None
-            bt = rep.symbolize_backtrace(thread['stacktrace']['frames'])
+            bt = rep.symbolize_backtrace(thread['stacktrace']['frames'],
+                                         symbolize_inlined=True)
     return bt, report
 
 

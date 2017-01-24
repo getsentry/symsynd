@@ -24,7 +24,7 @@ def normalize_dsym_path(p):
     return p
 
 
-def find_instruction(addr, cpu_name):
+def find_instruction(addr, cpu_name, frame_number=None):
     if cpu_name.startswith('arm64'):
         return (addr & -4) - 1
     elif cpu_name.startswith('arm'):
@@ -92,7 +92,8 @@ class Driver(object):
             if not is_valid_cpu_name(cpu_name):
                 raise SymbolicationError('"%s" is not a valid cpu name' % cpu_name)
 
-            instruction_addr = find_instruction(instruction_addr, cpu_name)
+            instruction_addr = find_instruction(instruction_addr, cpu_name,
+                                                frame_number)
             addr = image_vmaddr + instruction_addr - image_addr
 
             with self._lock:

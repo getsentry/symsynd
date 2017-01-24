@@ -86,7 +86,7 @@ class ReportSymbolizer(object):
             self.images = find_debug_images(dsym_paths, binary_images)
 
     def symbolize_frame(self, frame, silent=True, demangle=True,
-                        symbolize_inlined=False):
+                        symbolize_inlined=False, frame_number=None):
         img_addr = frame.get('object_addr') or frame.get('image_addr')
         img = self.images.get(img_addr)
         if img is None:
@@ -98,7 +98,8 @@ class ReportSymbolizer(object):
             img['dsym_path'], img['image_vmaddr'],
             img['image_addr'], frame['instruction_addr'],
             img['cpu_name'], silent=silent,
-            demangle=demangle, symbolize_inlined=symbolize_inlined)
+            demangle=demangle, symbolize_inlined=symbolize_inlined,
+            frame_number=frame_number)
 
         if not symbolize_inlined:
             if rv['symbol_name'] is None:
@@ -117,17 +118,17 @@ class ReportSymbolizer(object):
     def symbolize_backtrace(self, backtrace, demangle=True,
                             symbolize_inlined=False):
         rv = []
-        for frame in backtrace:
+        for idx, frame in enumerate(backtrace):
+            symrv = self.symbolize_frame(frame, demangle=demangle,
+                                         symbolize_inlined=symbolize_inlined,
+                                         frame_number=idx)
             if symbolize_inlined:
-                new_frames = self.symbolize_frame(frame, demangle=demangle,
-                                                  symbolize_inlined=True)
-                if new_frames:
-                    rv.extend(new_frames)
+                if symrv:
+                    rv.extend(symrv)
                     continue
             else:
-                new_frame = self.symbolize_frame(frame, demangle=demangle)
-                if new_frame is not None:
-                    rv.append(new_frame)
+                if symrv is not None:
+                    rv.append(symrv)
                     continue
             rv.append(frame)
         return rv

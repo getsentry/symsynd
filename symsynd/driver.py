@@ -67,7 +67,8 @@ class Driver(object):
 
     def symbolize(self, dsym_path, image_vmaddr, image_addr,
                   instruction_addr, cpu_name, silent=True,
-                  demangle=True, symbolize_inlined=False):
+                  demangle=True, symbolize_inlined=False,
+                  frame_number=None):
         """Symbolizes a single frame based on the information provided.  If
         the symbolication fails `None` is returned in default more or a
         an exception is raised if `silent` is disabled.

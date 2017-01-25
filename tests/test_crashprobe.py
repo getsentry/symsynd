@@ -39,8 +39,8 @@ def _load_dsyms_and_symbolize_stacktrace(filename, version, cpu, res_path, drive
 def _filter_system_frames(bt):
     new_bt = []
     for frame in bt:
-        if any(p in frame['package'] for p in ('CrashProbeiOS', 'CrashLibiOS')) and \
-           'main.m' not in (frame.get('filename') or ''):
+        if any(p in frame['package'] for p in ('CrashProbeiOS', 'CrashLibiOS')) \
+           and 'main.m' not in (frame.get('filename') or ''):
             new_bt.append(frame)
     return new_bt
 
@@ -49,6 +49,7 @@ def _test_doCrash_call(bt, index=1):
     assert bt[index]['symbol_name'] == '-[CRLDetailViewController doCrash]'
     assert bt[index]['line'] == 53
     assert bt[index]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
+
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
 def test_pthread_list_lock_report(res_path, driver, version, cpu):

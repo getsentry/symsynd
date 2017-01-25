@@ -39,12 +39,11 @@ def _load_dsyms_and_symbolize_stacktrace(filename, version, cpu, res_path, drive
 def _filter_system_frames(bt):
     new_bt = []
     for frame in bt:
-        for package in ['CrashProbeiOS', 'CrashLibiOS']:
-            if package in frame['package']:
-                if frame.get('filename') and 'main.m' in frame.get('filename'):
-                    continue;
-                new_bt.append(frame)
+        if any(p in frame['package'] for p in ('CrashProbeiOS', 'CrashLibiOS')) \
+           and 'main.m' not in (frame.get('filename') or ''):
+            new_bt.append(frame)
     return new_bt
+
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
 def test_pthread_list_lock_report(res_path, driver, version, cpu):

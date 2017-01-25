@@ -28,9 +28,9 @@ def find_instruction(addr, cpu_name, frame_number=None):
     if frame_number == 0:
         return addr
     if cpu_name.startswith('arm64'):
-        return (addr & -4) - 1
+        return (addr & -4) - 4
     elif cpu_name.startswith('arm'):
-        return (addr & -2) - 1
+        return (addr & -2) - 2
     else:
         return addr - 1
 

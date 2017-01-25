@@ -33,6 +33,7 @@ def _load_dsyms_and_symbolize_stacktrace(filename, version, cpu, res_path, drive
             assert bt is None
             bt = rep.symbolize_backtrace(thread['stacktrace']['frames'][::-1],
                                          symbolize_inlined=True)
+            #assert len(thread['stacktrace']['frames']) is len(bt)
     return bt, report
 
 
@@ -276,7 +277,8 @@ def test_dereference_a_bad_pointer(res_path, driver, version, cpu):
     assert bt[0]['symbol_name'] == '-[CRLCrashGarbage crash]'
     assert bt[0]['line'] == cpu == 'arm64' and 52 or 48
     assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashGarbage.m'
-    _test_doCrash_call(bt)
+    # TODO check here we have one more frame on arm64 from kscrash
+    _test_doCrash_call(bt, cpu == 'arm64' and 2 or 1)
 
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)

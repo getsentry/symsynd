@@ -39,12 +39,16 @@ def _load_dsyms_and_symbolize_stacktrace(filename, version, cpu, res_path, drive
 def _filter_system_frames(bt):
     new_bt = []
     for frame in bt:
-        for package in ['CrashProbeiOS', 'CrashLibiOS']:
-            if package in frame['package']:
-                if frame.get('filename') and 'main.m' in frame.get('filename'):
-                    continue;
-                new_bt.append(frame)
+        if any(p in frame['package'] for p in ('CrashProbeiOS', 'CrashLibiOS')) and \
+           'main.m' not in (frame.get('filename') or ''):
+            new_bt.append(frame)
     return new_bt
+
+
+def _test_doCrash_call(bt, index=1):
+    assert bt[index]['symbol_name'] == '-[CRLDetailViewController doCrash]'
+    assert bt[index]['line'] == 53
+    assert bt[index]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
 def test_pthread_list_lock_report(res_path, driver, version, cpu):
@@ -61,13 +65,10 @@ def test_pthread_list_lock_report(res_path, driver, version, cpu):
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
     bt = _filter_system_frames(bt)
-    assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
-    assert bt[0]['line'] == 53
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
-    assert bt[1]['symbol_name'] == '-[CRLCrashAsyncSafeThread crash]'
-    assert bt[1]['line'] == 41
-    assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashAsyncSafeThread.m'
-
+    assert bt[0]['symbol_name'] == '-[CRLCrashAsyncSafeThread crash]'
+    assert bt[0]['line'] == 41
+    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashAsyncSafeThread.m'
+    _test_doCrash_call(bt)
 
 @pytest.mark.xfail(reason='C++ Exception handling doesn\'t work')
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
@@ -95,12 +96,10 @@ def test_throw_objective_c_exception(res_path, driver, version, cpu):
     if 'NSGenericException: An uncaught exception! SCREAM.' not in report['exception']['values'][0]['value']:
         pytest.xfail('Crash reason not found')
     bt = _filter_system_frames(bt)
-    assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
-    assert bt[0]['line'] == 53
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
-    assert bt[1]['symbol_name'] == '-[CRLCrashObjCException crash]'
-    assert bt[1]['line'] == 41
-    assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashObjCException.m'
+    assert bt[0]['symbol_name'] == '-[CRLCrashObjCException crash]'
+    assert bt[0]['line'] == 41
+    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashObjCException.m'
+    _test_doCrash_call(bt)
 
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
@@ -118,12 +117,10 @@ def test_access_a_non_object_as_an_object(res_path, driver, version, cpu):
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
     bt = _filter_system_frames(bt)
-    assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
-    assert bt[0]['line'] == 53
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
-    assert bt[1]['symbol_name'] == '-[CRLCrashNSLog crash]'
-    assert bt[1]['line'] == 41
-    assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashNSLog.m'
+    assert bt[0]['symbol_name'] == '-[CRLCrashNSLog crash]'
+    assert bt[0]['line'] == 41
+    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashNSLog.m'
+    _test_doCrash_call(bt)
 
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
@@ -141,12 +138,10 @@ def test_crash_inside_objc_msg_send(res_path, driver, version, cpu):
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
     bt = _filter_system_frames(bt)
-    assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
-    assert bt[0]['line'] == 53
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
-    assert bt[1]['symbol_name'] == '-[CRLCrashObjCMsgSend crash]'
-    assert bt[1]['line'] == 47
-    assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashObjCMsgSend.m'
+    assert bt[0]['symbol_name'] == '-[CRLCrashObjCMsgSend crash]'
+    assert bt[0]['line'] == 47
+    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashObjCMsgSend.m'
+    _test_doCrash_call(bt)
 
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
@@ -165,15 +160,14 @@ def test_message_a_released_object(res_path, driver, version, cpu):
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
     bt = _filter_system_frames(bt)
-    assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
-    assert bt[0]['line'] == 53
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
-    assert bt[2]['symbol_name'] == '-[CRLCrashReleasedObject crash]'
-    assert bt[2]['line'] == 49
-    assert bt[2]['filename'].rsplit('/', 1)[-1] == 'CRLCrashReleasedObject.m'
-    assert bt[4]['symbol_name'] == '__31-[CRLCrashReleasedObject crash]_block_invoke'
-    assert bt[4]['line'] == cpu == 'arm64' and 51 or 53
-    assert bt[4]['filename'].rsplit('/', 1)[-1] == 'CRLCrashReleasedObject.m'
+    import pprint; pprint.pprint(bt)
+    assert bt[0]['symbol_name'] == '__31-[CRLCrashReleasedObject crash]_block_invoke'
+    assert bt[0]['line'] == cpu == 'arm64' and 51 or 53
+    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashReleasedObject.m'
+    assert bt[1]['symbol_name'] == '-[CRLCrashReleasedObject crash]'
+    assert bt[1]['line'] == 49
+    assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashReleasedObject.m'
+    _test_doCrash_call(bt, 2)
 
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
@@ -191,12 +185,10 @@ def test_write_to_a_read_only_page(res_path, driver, version, cpu):
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
     bt = _filter_system_frames(bt)
-    assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
-    assert bt[0]['line'] == 53
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
-    assert bt[1]['symbol_name'] == '-[CRLCrashROPage crash]'
-    assert bt[1]['line'] == 42
-    assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashROPage.m'
+    assert bt[0]['symbol_name'] == '-[CRLCrashROPage crash]'
+    assert bt[0]['line'] == 42
+    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashROPage.m'
+    _test_doCrash_call(bt)
 
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
@@ -215,12 +207,10 @@ def test_execute_a_privileged_instruction(res_path, driver, version, cpu):
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
     bt = _filter_system_frames(bt)
-    assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
-    assert bt[0]['line'] == 53
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
-    assert bt[1]['symbol_name'] == '-[CRLCrashPrivInst crash]'
-    assert bt[1]['line'] == cpu == 'arm64' and 52 or 42
-    assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashPrivInst.m'
+    assert bt[0]['symbol_name'] == '-[CRLCrashPrivInst crash]'
+    assert bt[0]['line'] == cpu == 'arm64' and 52 or 42
+    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashPrivInst.m'
+    _test_doCrash_call(bt)
 
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
@@ -239,12 +229,10 @@ def test_execute_an_undefined_instruction(res_path, driver, version, cpu):
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
     bt = _filter_system_frames(bt)
-    assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
-    assert bt[0]['line'] == 53
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
-    assert bt[1]['symbol_name'] == '-[CRLCrashUndefInst crash]'
-    assert bt[1]['line'] == cpu == 'arm64' and 50 or 42
-    assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashUndefInst.m'
+    assert bt[0]['symbol_name'] == '-[CRLCrashUndefInst crash]'
+    assert bt[0]['line'] == cpu == 'arm64' and 50 or 42
+    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashUndefInst.m'
+    _test_doCrash_call(bt)
 
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
@@ -262,12 +250,10 @@ def test_dereference_a_null_pointer(res_path, driver, version, cpu):
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
     bt = _filter_system_frames(bt)
-    assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
-    assert bt[0]['line'] == 53
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
-    assert bt[1]['symbol_name'] == '-[CRLCrashNULL crash]'
-    assert bt[1]['line'] == 37
-    assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashNULL.m'
+    assert bt[0]['symbol_name'] == '-[CRLCrashNULL crash]'
+    assert bt[0]['line'] == 37
+    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashNULL.m'
+    _test_doCrash_call(bt)
 
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
@@ -286,12 +272,10 @@ def test_dereference_a_bad_pointer(res_path, driver, version, cpu):
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
     bt = _filter_system_frames(bt)
-    assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
-    assert bt[0]['line'] == 53
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
-    assert bt[1]['symbol_name'] == '-[CRLCrashGarbage crash]'
-    assert bt[1]['line'] == cpu == 'arm64' and 52 or 48
-    assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashGarbage.m'
+    assert bt[0]['symbol_name'] == '-[CRLCrashGarbage crash]'
+    assert bt[0]['line'] == cpu == 'arm64' and 52 or 48
+    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashGarbage.m'
+    _test_doCrash_call(bt)
 
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
@@ -309,12 +293,10 @@ def test_jump_into_an_nx_page(res_path, driver, version, cpu):
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
     bt = _filter_system_frames(bt)
-    assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
-    assert bt[0]['line'] == 53
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
-    assert bt[1]['symbol_name'] == '-[CRLCrashNXPage crash]'
-    assert bt[1]['line'] == 37
-    assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashNXPage.m'
+    assert bt[0]['symbol_name'] == '-[CRLCrashNXPage crash]'
+    assert bt[0]['line'] == 37
+    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashNXPage.m'
+    _test_doCrash_call(bt)
 
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
@@ -334,10 +316,9 @@ def test_stack_overflow(res_path, driver, version, cpu):
     # -[CRLCrashStackGuard crash] (CRLCrashStackGuard.m:39)
     assert bt is not None
     bt = _filter_system_frames(bt)
-    #import pprint; pprint.pprint(bt)
-    assert bt[29]['symbol_name'] == '-[CRLCrashStackGuard crash]'
-    assert bt[29]['line'] == 38
-    assert bt[29]['filename'].rsplit('/', 1)[-1] == 'CRLCrashStackGuard.m'
+    assert bt[0]['symbol_name'] == '-[CRLCrashStackGuard crash]'
+    assert bt[0]['line'] == 38
+    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashStackGuard.m'
 
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
@@ -355,12 +336,10 @@ def test_call_builtin_trap(res_path, driver, version, cpu):
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
     bt = _filter_system_frames(bt)
-    assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
-    assert bt[0]['line'] == 53
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
-    assert bt[1]['symbol_name'] == '-[CRLCrashTrap crash]'
-    assert bt[1]['line'] == 37
-    assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashTrap.m'
+    assert bt[0]['symbol_name'] == '-[CRLCrashTrap crash]'
+    assert bt[0]['line'] == 37
+    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashTrap.m'
+    _test_doCrash_call(bt)
 
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
@@ -378,12 +357,10 @@ def test_call_abort(res_path, driver, version, cpu):
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
     bt = _filter_system_frames(bt)
-    assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
-    assert bt[0]['line'] == 53
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
-    assert bt[1]['symbol_name'] == '-[CRLCrashAbort crash]'
-    assert bt[1]['line'] == 37
-    assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashAbort.m'
+    assert bt[0]['symbol_name'] == '-[CRLCrashAbort crash]'
+    assert bt[0]['line'] == 37
+    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashAbort.m'
+    _test_doCrash_call(bt)
 
 
 @pytest.mark.xfail(reason='App crash does not generate any report')
@@ -419,9 +396,6 @@ def test_dwarf_unwinding(res_path, driver, version, cpu):
     assert bt is not None
     bt = _filter_system_frames(bt)
     assert len(bt) > 3
-    assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
-    assert bt[0]['line'] == 53
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
 
     assert bt[2]['symbol_name'] == '-[CRLFramelessDWARF crash]'
     assert bt[2]['line'] == 49
@@ -430,6 +404,8 @@ def test_dwarf_unwinding(res_path, driver, version, cpu):
     assert bt[4]['symbol_name'] == 'CRLFramelessDWARF_test_crash'
     assert bt[4]['line'] == 35
     assert bt[4]['filename'].rsplit('/', 1)[-1] == 'CRLFramelessDWARF.m'
+
+    _test_doCrash_call(bt)
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
 def test_overwrite_link_register_then_crash(res_path, driver, version, cpu):
@@ -446,12 +422,11 @@ def test_overwrite_link_register_then_crash(res_path, driver, version, cpu):
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
     bt = _filter_system_frames(bt)
-    assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
+    import pprint; pprint.pprint(bt)
+    assert bt[0]['symbol_name'] == '-[CRLCrashOverwriteLinkRegister crash]'
     assert bt[0]['line'] == 53
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
-    assert bt[1]['symbol_name'] == '-[CRLCrashOverwriteLinkRegister crash]'
-    assert bt[1]['line'] == 53
-    assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashOverwriteLinkRegister.m'
+    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashOverwriteLinkRegister.m'
+    _test_doCrash_call(bt, 2)
 
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
@@ -515,10 +490,8 @@ def test_swift(res_path, driver, version, cpu):
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
     bt = _filter_system_frames(bt)
-    assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
-    assert bt[0]['line'] == 53
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
     assert bt[1]['symbol_name'] == '@objc CrashLibiOS.CRLCrashSwift.crash () -> ()'
     assert bt[1]['line'] == 36
     assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashSwift.swift'
+    _test_doCrash_call(bt, 2)
 

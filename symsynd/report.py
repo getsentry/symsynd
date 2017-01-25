@@ -5,14 +5,19 @@ from symsynd.utils import timedsection
 from symsynd._compat import string_types
 
 
+def get_image_cpu_name(image):
+    cpu_name = image.get('cpu_name')
+    if cpu_name is not None:
+        return cpu_name
+    return get_cpu_name(image['cpu_type'], image['cpu_subtype'])
+
+
 def find_debug_images(dsym_paths, binary_images):
     images_to_load = set()
 
     with timedsection('iterimages0'):
         for image in binary_images:
-            cpu_name = get_cpu_name(image['cpu_type'],
-                                    image['cpu_subtype'])
-            if cpu_name is not None:
+            if get_image_cpu_name(image) is not None:
                 images_to_load.add(image['uuid'].lower())
 
     images = {}
@@ -58,8 +63,7 @@ def find_debug_images(dsym_paths, binary_images):
     # Now resolve all the images.
     with timedsection('resolveimages'):
         for image in binary_images:
-            cpu_name = get_cpu_name(image['cpu_type'],
-                                    image['cpu_subtype'])
+            cpu_name = get_image_cpu_name(image)
             if cpu_name is None:
                 continue
             uid = image['uuid'].lower()
@@ -69,7 +73,7 @@ def find_debug_images(dsym_paths, binary_images):
                 'uuid': uid,
                 'image_addr': image['image_addr'],
                 'dsym_path': images[uid],
-                'image_vmaddr': image['image_vmaddr'],
+                'image_vmaddr': image.get('image_vmaddr') or 0,
                 'cpu_name': cpu_name,
             }
 
@@ -77,6 +81,17 @@ def find_debug_images(dsym_paths, binary_images):
 
 
 class ReportSymbolizer(object):
+    """A report symbolizer can symbolize apple style crash reports.  For
+    information on some of the parameters also make sure to refer to the
+    underlying `Driver` which needs to be passed in.
+
+    `dsym_paths` is a list of paths where dsym files can be found on the
+    file system.  `binary_images` is a list of binary images.  The
+    images need to be given as dictionaries with the following keys:
+    ``uuid``, ``image_addr``, ``dsym_path``, ``image_vmaddr`` (can be left
+    out), ``cpu_type``, ``cpu_subtype`` (alternatively ``cpu_name`` is
+    also accepted).
+    """
 
     def __init__(self, driver, dsym_paths, binary_images):
         if isinstance(dsym_paths, string_types):

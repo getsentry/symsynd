@@ -9,6 +9,11 @@ from symsynd.exceptions import SymbolicationError
 from symsynd.libsymbolizer import Symbolizer
 
 
+SIGILL = 4
+SIGBUS = 10
+SIGSEGV = 11
+
+
 def qm_to_none(value):
     if value == '??':
         return None
@@ -24,18 +29,50 @@ def normalize_dsym_path(p):
     return p
 
 
-def find_instruction(addr, cpu_name, meta=None):
-    # Do not attempt to find a better instruction for the crashed frame
-    # for now.  Later we might want to use meta information to find better
-    # addresses from other information available here.
-    if meta is not None and meta.get('frame_number') == 0:
-        return addr
+def get_previous_instruction(addr, cpu_name):
     if cpu_name.startswith('arm64'):
         return (addr & -4) - 4
     elif cpu_name.startswith('arm'):
         return (addr & -2) - 2
     else:
         return addr - 1
+
+
+def get_next_instruction(addr, cpu_name):
+    if cpu_name.startswith('arm64'):
+        return (addr & -4) + 4
+    elif cpu_name.startswith('arm'):
+        return (addr & -2) + 2
+    else:
+        return addr + 1
+
+
+def truncate_instruction(addr, cpu_name):
+    if cpu_name.startswith('arm64'):
+        return addr & -4
+    elif cpu_name.startswith('arm'):
+        return addr & -2
+    return addr
+
+
+def find_instruction(addr, cpu_name, meta=None):
+    # In case we're not on the crashing frame we apply a simple heuristic:
+    # since we're most likely dealing with return addresses we just assume
+    # that the call is one instruction behind the current one.
+    if not meta or meta.get('frame_number') != 0:
+        return get_previous_instruction(addr, cpu_name)
+
+    # In case registers are available we can check if the PC register
+    # does not match the given address we have from the first frame.
+    # If that is the case and we got one of a few signals taht are likely
+    # it seems that going with one instruction back is actually the
+    # correct thing to do.
+    regs = meta.get('registers')
+    if regs and 'pc' in regs and parse_addr(regs['pc']) != addr and \
+       meta.get('signal') in (SIGILL, SIGBUS, SIGSEGV):
+        return get_previous_instruction(addr, cpu_name)
+
+    return addr
 
 
 def convert_symbol(sym, demangle=True):

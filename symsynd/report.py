@@ -118,9 +118,7 @@ class ReportSymbolizer(object):
     def symbolize_backtrace(self, backtrace, demangle=True, meta=None,
                             symbolize_inlined=False):
         rv = []
-        meta = {
-            'frame_number': None,
-        }
+        meta = dict(meta or {}, frame_number=None)
         for idx, frame in enumerate(backtrace):
             meta['frame_number'] = idx
             symrv = self.symbolize_frame(frame, demangle=demangle,

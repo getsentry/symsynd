@@ -31,9 +31,18 @@ def _load_dsyms_and_symbolize_stacktrace(filename, version, cpu, res_path, drive
             dsym_paths.append(os.path.join(dsyms_folder, file))
 
     rep = ReportSymbolizer(driver, dsym_paths, report['debug_meta']['images'])
-    stacktrace = report['exception']['values'][0]['stacktrace']
+    exc = report['exception']['values'][0]
+    stacktrace = exc['stacktrace']
+    meta = {}
+    if 'mechanism' in exc:
+        if 'posix_signal' in exc['mechanism']:
+            meta['signal'] = exc['mechanism']['posix_signal']['signal']
+    # XXX: this should probably be `register`
+    if 'register' in stacktrace:
+        meta['registers'] = stacktrace['register']['basic']
     bt = rep.symbolize_backtrace(stacktrace['frames'][::-1],
-                                 symbolize_inlined=True)
+                                 symbolize_inlined=True,
+                                 meta=meta)
     return bt, report
 
 
@@ -162,7 +171,6 @@ def test_message_a_released_object(res_path, driver, version, cpu):
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
     bt = _filter_system_frames(bt)
-    import pprint; pprint.pprint(bt)
     assert bt[0]['symbol_name'] == '__31-[CRLCrashReleasedObject crash]_block_invoke'
     assert basename(bt[0]['filename']) == 'CRLCrashReleasedObject.m'
     assert bt[0]['line'] == cpu == 'arm64' and 51 or 53
@@ -284,6 +292,9 @@ def test_dereference_a_bad_pointer(res_path, driver, version, cpu):
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
 @pytest.mark.bad_crashprobe
 def test_jump_into_an_nx_page(res_path, driver, version, cpu):
+    # Note mitsuhiko: this test does not actually do what the text says.
+    # Nothing here is jumping to an NX page, instead the compiler will
+    # emit a "brk #0x1" for the call to the null pointer function.
     bt, report = _load_dsyms_and_symbolize_stacktrace(
     'Jump into an NX page.json',
         version,
@@ -336,6 +347,7 @@ def test_stack_overflow(res_path, driver, version, cpu):
 
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+@pytest.mark.bad_crashprobe
 def test_call_builtin_trap(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'Call __builtin_trap().json',
@@ -352,7 +364,15 @@ def test_call_builtin_trap(res_path, driver, version, cpu):
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashTrap crash]'
     assert basename(bt[0]['filename']) == 'CRLCrashTrap.m'
-    assert bt[0]['line'] == 37
+
+    # Crashprobe (as well as the sourcecode) expects 37 here.  This is
+    # obviously what is expected but if you look into the dsym file you
+    # can see that for the given address the information says it would be
+    # in line 35.
+    if 0:
+        assert bt[0]['line'] == 37
+    else:
+        assert bt[0]['line'] == 35
     _test_doCrash_call(bt)
 
 
@@ -394,6 +414,7 @@ def test_corrupt_the_objective_c_runtime_s_structures(res_path, driver, version,
 
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+@pytest.mark.xfail(reason='KSCrash does not support dwarf unwinding')
 def test_dwarf_unwinding(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'DWARF Unwinding.json',
@@ -436,7 +457,6 @@ def test_overwrite_link_register_then_crash(res_path, driver, version, cpu):
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
     bt = _filter_system_frames(bt)
-    import pprint; pprint.pprint(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashOverwriteLinkRegister crash]'
     assert basename(bt[0]['filename']) == 'CRLCrashOverwriteLinkRegister.m'
     assert bt[0]['line'] == 53
@@ -490,6 +510,7 @@ def test_smash_the_top_of_the_stack(res_path, driver, version, cpu):
 
 
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
+@pytest.mark.bad_crashprobe
 def test_swift(res_path, driver, version, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'Swift.json',
@@ -506,6 +527,14 @@ def test_swift(res_path, driver, version, cpu):
     bt = _filter_system_frames(bt)
     assert bt[1]['symbol_name'] == '@objc CrashLibiOS.CRLCrashSwift.crash () -> ()'
     assert basename(bt[1]['filename']) == 'CRLCrashSwift.swift'
-    assert bt[1]['line'] == 36
+
+    # This should actually be line 36, however if you look into the dsym
+    # you can see that the dsym actually stores line 0 here.  Our
+    # assumption is that line 0 means that swift generated some code that
+    # was not actually in the file.
+    if 0:
+        assert bt[1]['line'] == 36
+    else:
+        assert bt[1]['line'] == 0
     _test_doCrash_call(bt, 2)
 

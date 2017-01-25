@@ -14,10 +14,12 @@ class DiffReport(object):
         from _pytest.config import create_terminal_writer
         self.filename = '.last-run'
         self.results = {}
+        self.ran_any = False
         self._tw = create_terminal_writer(config, sys.stdout)
 
     def record_result(self, name, outcome):
         self.results[name] = outcome
+        self.ran_any = True
 
     def write_to_file(self):
         if self.results != self.get_last_run():
@@ -90,8 +92,9 @@ def pytest_configure(config):
 
 def pytest_unconfigure(config):
     old_run = diff_report.get_last_run()
-    diff_report.write_to_file()
-    diff_report.diff_with_run(old_run)
+    if diff_report.ran_any:
+        diff_report.write_to_file()
+        diff_report.diff_with_run(old_run)
 
 
 from _pytest import terminal

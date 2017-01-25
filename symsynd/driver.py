@@ -25,6 +25,8 @@ def normalize_dsym_path(p):
 
 
 def find_instruction(addr, cpu_name, frame_number=None):
+    if frame_number == 0:
+        return addr
     if cpu_name.startswith('arm64'):
         return (addr & -4) - 1
     elif cpu_name.startswith('arm'):

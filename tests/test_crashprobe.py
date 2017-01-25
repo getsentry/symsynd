@@ -5,8 +5,6 @@ from symsynd.report import ReportSymbolizer
 
 
 TEST_PARAMETER = [
-('1.4.1 (201701191305)', 'arm64'),
-('1.4.1 (201701200943)', 'armv7'),
 ('1.4.1 (201701251156)', 'arm64'),
 ('1.4.1 (201701251156)', 'armv7'),
 ]

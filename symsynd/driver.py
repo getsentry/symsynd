@@ -24,8 +24,11 @@ def normalize_dsym_path(p):
     return p
 
 
-def find_instruction(addr, cpu_name, frame_number=None):
-    if frame_number == 0:
+def find_instruction(addr, cpu_name, meta=None):
+    # Do not attempt to find a better instruction for the crashed frame
+    # for now.  Later we might want to use meta information to find better
+    # addresses from other information available here.
+    if meta is not None and meta.get('frame_number') == 0:
         return addr
     if cpu_name.startswith('arm64'):
         return (addr & -4) - 4
@@ -70,7 +73,7 @@ class Driver(object):
     def symbolize(self, dsym_path, image_vmaddr, image_addr,
                   instruction_addr, cpu_name, silent=True,
                   demangle=True, symbolize_inlined=False,
-                  frame_number=None):
+                  meta=None):
         """Symbolizes a single frame based on the information provided.  If
         the symbolication fails `None` is returned in default more or a
         an exception is raised if `silent` is disabled.
@@ -95,7 +98,7 @@ class Driver(object):
                 raise SymbolicationError('"%s" is not a valid cpu name' % cpu_name)
 
             instruction_addr = find_instruction(instruction_addr, cpu_name,
-                                                frame_number)
+                                                meta)
             addr = image_vmaddr + instruction_addr - image_addr
 
             with self._lock:

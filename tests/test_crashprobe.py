@@ -33,12 +33,9 @@ def _load_dsyms_and_symbolize_stacktrace(filename, version, cpu, res_path, drive
             dsym_paths.append(os.path.join(dsyms_folder, file))
 
     rep = ReportSymbolizer(driver, dsym_paths, report['debug_meta']['images'])
-    for thread in report['threads']['values']:
-        if thread['crashed']:
-            assert bt is None
-            bt = rep.symbolize_backtrace(thread['stacktrace']['frames'][::-1],
-                                         symbolize_inlined=True)
-            #assert len(thread['stacktrace']['frames']) is len(bt)
+    stacktrace = report['exception']['values'][0]['stacktrace']
+    bt = rep.symbolize_backtrace(stacktrace['frames'][::-1],
+                                 symbolize_inlined=True)
     return bt, report
 
 

@@ -86,7 +86,7 @@ class ReportSymbolizer(object):
             self.images = find_debug_images(dsym_paths, binary_images)
 
     def symbolize_frame(self, frame, silent=True, demangle=True,
-                        symbolize_inlined=False, frame_number=None):
+                        symbolize_inlined=False, meta=None):
         img_addr = frame.get('object_addr') or frame.get('image_addr')
         img = self.images.get(img_addr)
         if img is None:
@@ -99,7 +99,7 @@ class ReportSymbolizer(object):
             img['image_addr'], frame['instruction_addr'],
             img['cpu_name'], silent=silent,
             demangle=demangle, symbolize_inlined=symbolize_inlined,
-            frame_number=frame_number)
+            meta=meta)
 
         if not symbolize_inlined:
             if rv['symbol_name'] is None:
@@ -115,13 +115,17 @@ class ReportSymbolizer(object):
 
         return sym_rv
 
-    def symbolize_backtrace(self, backtrace, demangle=True,
+    def symbolize_backtrace(self, backtrace, demangle=True, meta=None,
                             symbolize_inlined=False):
         rv = []
+        meta = {
+            'frame_number': None,
+        }
         for idx, frame in enumerate(backtrace):
+            meta['frame_number'] = idx
             symrv = self.symbolize_frame(frame, demangle=demangle,
                                          symbolize_inlined=symbolize_inlined,
-                                         frame_number=idx)
+                                         meta=meta)
             if symbolize_inlined:
                 if symrv:
                     rv.extend(symrv)

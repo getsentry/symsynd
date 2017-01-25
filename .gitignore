@@ -7,6 +7,7 @@
 .eggs
 .Dockerfile*
 .build-venvs
+.last-run
 symsynd/_symbolizer.py
 build
 dist

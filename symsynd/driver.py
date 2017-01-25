@@ -89,8 +89,7 @@ def convert_symbol(sym, demangle=True):
 
 class Driver(object):
 
-    def __init__(self, symbolizer_path=None):
-        # symbolizer_path is no longer used.
+    def __init__(self):
         self._lock = RLock()
         self._proc = None
         self._closed = False

@@ -6,7 +6,9 @@ from symsynd.report import ReportSymbolizer
 
 TEST_PARAMETER = [
 ('1.4.1 (201701191305)', 'arm64'),
-('1.4.1 (201701200943)', 'armv7')
+('1.4.1 (201701200943)', 'armv7'),
+('1.4.1 (201701251156)', 'arm64'),
+('1.4.1 (201701251156)', 'armv7'),
 ]
 
 
@@ -30,7 +32,7 @@ def _load_dsyms_and_symbolize_stacktrace(filename, version, cpu, res_path, drive
         if thread['crashed']:
             assert bt is None
             bt = rep.symbolize_backtrace(thread['stacktrace']['frames'][::-1],
-                                         symbolize_inlined=True)[::-1]
+                                         symbolize_inlined=True)
     return bt, report
 
 
@@ -58,7 +60,6 @@ def test_pthread_list_lock_report(res_path, driver, version, cpu):
     # -[CRLCrashAsyncSafeThread crash] (CRLCrashAsyncSafeThread.m:41)
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
-    bt = _filter_system_frames(bt)
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLDetailViewController doCrash]'
     assert bt[0]['line'] == 53

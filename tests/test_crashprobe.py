@@ -10,6 +10,11 @@ TEST_PARAMETER = [
 ]
 
 
+def basename(fn):
+    if fn:
+        return fn.rsplit('/', 1)[-1]
+
+
 def _load_dsyms_and_symbolize_stacktrace(filename, version, cpu, res_path, driver):
     filename_version = version.replace(' ', '')
     path = os.path.join(res_path, 'ext', version, cpu, filename)
@@ -26,12 +31,9 @@ def _load_dsyms_and_symbolize_stacktrace(filename, version, cpu, res_path, drive
             dsym_paths.append(os.path.join(dsyms_folder, file))
 
     rep = ReportSymbolizer(driver, dsym_paths, report['debug_meta']['images'])
-    for thread in report['threads']['values']:
-        if thread['crashed']:
-            assert bt is None
-            bt = rep.symbolize_backtrace(thread['stacktrace']['frames'][::-1],
-                                         symbolize_inlined=True)
-            #assert len(thread['stacktrace']['frames']) is len(bt)
+    stacktrace = report['exception']['values'][0]['stacktrace']
+    bt = rep.symbolize_backtrace(stacktrace['frames'][::-1],
+                                 symbolize_inlined=True)
     return bt, report
 
 
@@ -46,7 +48,7 @@ def _filter_system_frames(bt):
 
 def _test_doCrash_call(bt, index=1):
     assert bt[index]['symbol_name'] == '-[CRLDetailViewController doCrash]'
-    assert bt[index]['filename'].rsplit('/', 1)[-1] == 'CRLDetailViewController.m'
+    assert basename(bt[index]['filename']) == 'CRLDetailViewController.m'
     assert bt[index]['line'] == 53
 
 
@@ -66,7 +68,7 @@ def test_pthread_list_lock_report(res_path, driver, version, cpu):
     assert bt is not None
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashAsyncSafeThread crash]'
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashAsyncSafeThread.m'
+    assert basename(bt[0]['filename']) == 'CRLCrashAsyncSafeThread.m'
     assert bt[0]['line'] == 41
     _test_doCrash_call(bt)
 
@@ -97,7 +99,7 @@ def test_throw_objective_c_exception(res_path, driver, version, cpu):
         pytest.xfail('Crash reason not found')
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashObjCException crash]'
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashObjCException.m'
+    assert basename(bt[0]['filename']) == 'CRLCrashObjCException.m'
     assert bt[0]['line'] == 41
     _test_doCrash_call(bt)
 
@@ -118,7 +120,7 @@ def test_access_a_non_object_as_an_object(res_path, driver, version, cpu):
     assert bt is not None
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashNSLog crash]'
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashNSLog.m'
+    assert basename(bt[0]['filename']) == 'CRLCrashNSLog.m'
     assert bt[0]['line'] == 41
     _test_doCrash_call(bt)
 
@@ -139,7 +141,7 @@ def test_crash_inside_objc_msg_send(res_path, driver, version, cpu):
     assert bt is not None
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashObjCMsgSend crash]'
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashObjCMsgSend.m'
+    assert basename(bt[0]['filename']) == 'CRLCrashObjCMsgSend.m'
     assert bt[0]['line'] == 47
     _test_doCrash_call(bt)
 
@@ -162,10 +164,10 @@ def test_message_a_released_object(res_path, driver, version, cpu):
     bt = _filter_system_frames(bt)
     import pprint; pprint.pprint(bt)
     assert bt[0]['symbol_name'] == '__31-[CRLCrashReleasedObject crash]_block_invoke'
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashReleasedObject.m'
+    assert basename(bt[0]['filename']) == 'CRLCrashReleasedObject.m'
     assert bt[0]['line'] == cpu == 'arm64' and 51 or 53
     assert bt[1]['symbol_name'] == '-[CRLCrashReleasedObject crash]'
-    assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashReleasedObject.m'
+    assert basename(bt[1]['filename']) == 'CRLCrashReleasedObject.m'
     assert bt[1]['line'] == 49
     _test_doCrash_call(bt, 2)
 
@@ -186,7 +188,7 @@ def test_write_to_a_read_only_page(res_path, driver, version, cpu):
     assert bt is not None
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashROPage crash]'
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashROPage.m'
+    assert basename(bt[0]['filename']) == 'CRLCrashROPage.m'
     assert bt[0]['line'] == 42
     _test_doCrash_call(bt)
 
@@ -208,7 +210,7 @@ def test_execute_a_privileged_instruction(res_path, driver, version, cpu):
     assert bt is not None
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashPrivInst crash]'
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashPrivInst.m'
+    assert basename(bt[0]['filename']) == 'CRLCrashPrivInst.m'
     assert bt[0]['line'] == cpu == 'arm64' and 52 or 42
     _test_doCrash_call(bt)
 
@@ -230,7 +232,7 @@ def test_execute_an_undefined_instruction(res_path, driver, version, cpu):
     assert bt is not None
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashUndefInst crash]'
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashUndefInst.m'
+    assert basename(bt[0]['filename']) == 'CRLCrashUndefInst.m'
     assert bt[0]['line'] == cpu == 'arm64' and 50 or 42
     _test_doCrash_call(bt)
 
@@ -251,7 +253,7 @@ def test_dereference_a_null_pointer(res_path, driver, version, cpu):
     assert bt is not None
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashNULL crash]'
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashNULL.m'
+    assert basename(bt[0]['filename']) == 'CRLCrashNULL.m'
     assert bt[0]['line'] == 37
     _test_doCrash_call(bt)
 
@@ -273,7 +275,7 @@ def test_dereference_a_bad_pointer(res_path, driver, version, cpu):
     assert bt is not None
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashGarbage crash]'
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashGarbage.m'
+    assert basename(bt[0]['filename']) == 'CRLCrashGarbage.m'
     assert bt[0]['line'] == cpu == 'arm64' and 52 or 48
     # TODO check here we have one more frame on arm64 from kscrash
     _test_doCrash_call(bt, cpu == 'arm64' and 2 or 1)
@@ -295,7 +297,7 @@ def test_jump_into_an_nx_page(res_path, driver, version, cpu):
     assert bt is not None
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashNXPage crash]'
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashNXPage.m'
+    assert basename(bt[0]['filename']) == 'CRLCrashNXPage.m'
     assert bt[0]['line'] == 37
     _test_doCrash_call(bt)
 
@@ -318,7 +320,7 @@ def test_stack_overflow(res_path, driver, version, cpu):
     assert bt is not None
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashStackGuard crash]'
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashStackGuard.m'
+    assert basename(bt[0]['filename']) == 'CRLCrashStackGuard.m'
     assert bt[0]['line'] == 38
 
 
@@ -338,7 +340,7 @@ def test_call_builtin_trap(res_path, driver, version, cpu):
     assert bt is not None
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashTrap crash]'
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashTrap.m'
+    assert basename(bt[0]['filename']) == 'CRLCrashTrap.m'
     assert bt[0]['line'] == 37
     _test_doCrash_call(bt)
 
@@ -359,7 +361,7 @@ def test_call_abort(res_path, driver, version, cpu):
     assert bt is not None
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashAbort crash]'
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashAbort.m'
+    assert basename(bt[0]['filename']) == 'CRLCrashAbort.m'
     assert bt[0]['line'] == 37
     _test_doCrash_call(bt)
 
@@ -399,11 +401,11 @@ def test_dwarf_unwinding(res_path, driver, version, cpu):
     assert len(bt) > 3
 
     assert bt[2]['symbol_name'] == '-[CRLFramelessDWARF crash]'
-    assert bt[2]['filename'].rsplit('/', 1)[-1] == 'CRLFramelessDWARF.m'
+    assert basename(bt[2]['filename']) == 'CRLFramelessDWARF.m'
     assert bt[2]['line'] == 49
 
     assert bt[4]['symbol_name'] == 'CRLFramelessDWARF_test_crash'
-    assert bt[4]['filename'].rsplit('/', 1)[-1] == 'CRLFramelessDWARF.m'
+    assert basename(['filename']) == 'CRLFramelessDWARF.m'
     assert bt[4]['line'] == 35
 
     _test_doCrash_call(bt)
@@ -425,7 +427,7 @@ def test_overwrite_link_register_then_crash(res_path, driver, version, cpu):
     bt = _filter_system_frames(bt)
     import pprint; pprint.pprint(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashOverwriteLinkRegister crash]'
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashOverwriteLinkRegister.m'
+    assert basename(bt[0]['filename']) == 'CRLCrashOverwriteLinkRegister.m'
     assert bt[0]['line'] == 53
     _test_doCrash_call(bt, 2)
 
@@ -449,7 +451,7 @@ def test_smash_the_bottom_of_the_stack(res_path, driver, version, cpu):
     bt = _filter_system_frames(bt)
     assert len(bt) > 0
     assert bt[0]['symbol_name'] == '-[CRLCrashSmashStackBottom crash]'
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashSmashStackBottom.m'
+    assert basename(bt[0]['filename']) == 'CRLCrashSmashStackBottom.m'
     assert bt[0]['line'] == 54
 
 
@@ -472,7 +474,7 @@ def test_smash_the_top_of_the_stack(res_path, driver, version, cpu):
     bt = _filter_system_frames(bt)
     assert len(bt) > 0
     assert bt[0]['symbol_name'] == '-[CRLCrashSmashStackTop crash]'
-    assert bt[0]['filename'].rsplit('/', 1)[-1] == 'CRLCrashSmashStackTop.m'
+    assert basename(bt[0]['filename']) == 'CRLCrashSmashStackTop.m'
     assert bt[0]['line'] == 54
 
 
@@ -492,7 +494,7 @@ def test_swift(res_path, driver, version, cpu):
     assert bt is not None
     bt = _filter_system_frames(bt)
     assert bt[1]['symbol_name'] == '@objc CrashLibiOS.CRLCrashSwift.crash () -> ()'
-    assert bt[1]['filename'].rsplit('/', 1)[-1] == 'CRLCrashSwift.swift'
+    assert basename(bt[1]['filename']) == 'CRLCrashSwift.swift'
     assert bt[1]['line'] == 36
     _test_doCrash_call(bt, 2)
 

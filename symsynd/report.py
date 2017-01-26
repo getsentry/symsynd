@@ -1,8 +1,64 @@
 import os
+import bisect
 
 from symsynd.macho.arch import get_cpu_name, get_macho_uuids
-from symsynd.utils import timedsection
+from symsynd.utils import timedsection, parse_addr
+from symsynd.exceptions import SymbolicationError
 from symsynd._compat import string_types
+
+
+SIGILL = 4
+SIGBUS = 10
+SIGSEGV = 11
+
+
+def get_previous_instruction(addr, cpu_name):
+    if cpu_name.startswith('arm64'):
+        return (addr & -4) - 4
+    elif cpu_name.startswith('arm'):
+        return (addr & -2) - 2
+    else:
+        return addr - 1
+
+
+def get_next_instruction(addr, cpu_name):
+    if cpu_name.startswith('arm64'):
+        return (addr & -4) + 4
+    elif cpu_name.startswith('arm'):
+        return (addr & -2) + 2
+    else:
+        return addr + 1
+
+
+def truncate_instruction(addr, cpu_name):
+    if cpu_name.startswith('arm64'):
+        return addr & -4
+    elif cpu_name.startswith('arm'):
+        return addr & -2
+    return addr
+
+
+def find_instruction(addr, cpu_name, meta=None):
+    addr = parse_addr(addr)
+
+    # In case we're not on the crashing frame we apply a simple heuristic:
+    # since we're most likely dealing with return addresses we just assume
+    # that the call is one instruction behind the current one.
+    if not meta or meta.get('frame_number') != 0:
+        return get_previous_instruction(addr, cpu_name)
+
+    # In case registers are available we can check if the PC register
+    # does not match the given address we have from the first frame.
+    # If that is the case and we got one of a few signals taht are likely
+    # it seems that going with one instruction back is actually the
+    # correct thing to do.
+    regs = meta.get('registers')
+    if cpu_name[:3] == 'arm' and regs and 'pc' in regs \
+       and parse_addr(regs['pc']) != addr and \
+       meta.get('signal') in (SIGILL, SIGBUS, SIGSEGV):
+        return get_previous_instruction(addr, cpu_name)
+
+    return addr
 
 
 def get_image_cpu_name(image):
@@ -100,38 +156,95 @@ class ReportSymbolizer(object):
         with timedsection('findimages'):
             self.images = find_debug_images(dsym_paths, binary_images)
 
+        # This mapping is the mapping that the report symbolizer actually
+        # uses.  The `images` mapping is primarily for extenral consumers
+        # that want to see what images exist in the symbolizer.
+        self._image_addresses = []
+        self._image_references = {}
+        for img in self.images.itervalues():
+            img_addr = parse_addr(img['image_addr'])
+            self._image_addresses.append(img_addr)
+            self._image_references[img_addr] = img
+        self._image_addresses.sort()
+
+        # This should always succeed but you never quite know.
+        self.cpu_name = None
+        for img in self.images.itervalues():
+            cpu_name = img['cpu_name']
+            if self.cpu_name is None:
+                self.cpu_name = cpu_name
+            elif self.cpu_name != cpu_name:
+                self.cpu_name = None
+                break
+
+    def find_image(self, addr):
+        idx = bisect.bisect_left(self._image_addresses, addr)
+        if idx > 0:
+            return self._image_references[self._image_addresses[idx - 1]]
+
     def symbolize_frame(self, frame, silent=True, demangle=True,
                         symbolize_inlined=False, meta=None):
         """Symbolizes a frame in the context of the report data.  For
         more information see the `Driver.symbolize` method.
+
+        Unlike the lower level driver, this one can perform heuristics on the
+        crash if `meta` is provided.
+
+        `meta` is a dictionary of meta information that can help with
+        the symbolication process.  If it's empty then all heuristics are
+        disabled.  The following keys are currently supported:
+
+        -   ``frame_number``: the number of the source frame.  If this is set
+            to ``0`` then the crashing frame is assumed and various heuristics
+            are enabled.
+        -   ``signal``: the posix signal number if the execution was aborted
+            with a posix signal.  In particular this can help fix some issues
+            with assuming wrong addresses in limited circumstances.
+        -   ``registers``: a dictionary of register values.  The key is the
+            name of the register and the value is the register value as
+            hexadecimal string or integer.  The only register that currently
+            matters is ``pc`` on arm CPUs however this might change in the
+            future.
         """
         img_addr = frame.get('object_addr') or frame.get('image_addr')
-        img = self.images.get(img_addr)
-        if img is None:
+        cpu_name = frame.get('cpu_name') or (
+            meta and meta.get('cpu_name')) or self.cpu_name
+
+        try:
+            if cpu_name is None:
+                raise SymbolicationError('The CPU name was not provided')
+
+            instruction_addr = find_instruction(
+                frame['instruction_addr'], cpu_name, meta)
+
+            img = self.find_image(instruction_addr)
+            if img is None:
+                raise SymbolicationError('Could not find image')
+
+            rv = self.driver.symbolize(
+                img['dsym_path'], img['image_vmaddr'],
+                img['image_addr'], instruction_addr,
+                cpu_name, demangle=demangle,
+                symbolize_inlined=symbolize_inlined)
+
+            if not symbolize_inlined:
+                if rv is None or rv['symbol_name'] is None:
+                    return
+                return dict(frame, **rv)
+
+            sym_rv = []
+            for frame_rv in rv or ():
+                if frame_rv['symbol_name'] is not None:
+                    sym_rv.append(dict(frame, **frame_rv))
+                else:
+                    sym_rv.append(dict(frame))
+
+            return sym_rv
+        except SymbolicationError:
+            if not silent:
+                raise
             if symbolize_inlined:
                 return []
-            return
-
-        rv = self.driver.symbolize(
-            img['dsym_path'], img['image_vmaddr'],
-            img['image_addr'], frame['instruction_addr'],
-            img['cpu_name'], silent=silent,
-            demangle=demangle, symbolize_inlined=symbolize_inlined,
-            meta=meta)
-
-        if not symbolize_inlined:
-            if rv['symbol_name'] is None:
-                return
-            return dict(frame, **rv)
-
-        sym_rv = []
-        for frame_rv in rv:
-            if frame_rv['symbol_name'] is not None:
-                sym_rv.append(dict(frame, **frame_rv))
-            else:
-                sym_rv.append(dict(frame))
-
-        return sym_rv
 
     def symbolize_backtrace(self, backtrace, demangle=True, meta=None,
                             symbolize_inlined=True):

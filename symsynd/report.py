@@ -102,6 +102,9 @@ class ReportSymbolizer(object):
 
     def symbolize_frame(self, frame, silent=True, demangle=True,
                         symbolize_inlined=False, meta=None):
+        """Symbolizes a frame in the context of the report data.  For
+        more information see the `Driver.symbolize` method.
+        """
         img_addr = frame.get('object_addr') or frame.get('image_addr')
         img = self.images.get(img_addr)
         if img is None:
@@ -131,7 +134,10 @@ class ReportSymbolizer(object):
         return sym_rv
 
     def symbolize_backtrace(self, backtrace, demangle=True, meta=None,
-                            symbolize_inlined=False):
+                            symbolize_inlined=True):
+        """Symbolizes an entire stacktrace.  The crashing frame is expected
+        to be the first item in the list.
+        """
         rv = []
         meta = dict(meta or {}, frame_number=None)
         for idx, frame in enumerate(backtrace):

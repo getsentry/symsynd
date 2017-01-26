@@ -81,6 +81,7 @@ def test_pthread_list_lock_report(res_path, driver, version, cpu):
     assert bt[0]['line'] == 41
     _test_doCrash_call(bt)
 
+
 @pytest.mark.xfail(reason='C++ Exception handling doesn\'t work')
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
 def test_throw_c_pp_exception(res_path, driver, version, cpu):
@@ -104,8 +105,6 @@ def test_throw_objective_c_exception(res_path, driver, version, cpu):
     # -[CRLCrashObjCException crash] (CRLCrashObjCException.m:41)
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
-    if 'NSGenericException: An uncaught exception! SCREAM.' not in report['exception']['values'][0]['value']:
-        pytest.xfail('Crash reason not found')
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashObjCException crash]'
     assert basename(bt[0]['filename']) == 'CRLCrashObjCException.m'
@@ -537,4 +536,3 @@ def test_swift(res_path, driver, version, cpu):
     else:
         assert bt[1]['line'] == 0
     _test_doCrash_call(bt, 2)
-

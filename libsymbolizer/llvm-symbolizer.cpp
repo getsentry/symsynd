@@ -92,7 +92,7 @@ llvm_symbolizer_new(void)
     LLVMSymbolizer::Options opts(
         FunctionNameKind::LinkageName, /* print functions */
         true, /* use symbol table */
-        true, /* demangle */
+        false, /* demangle */
         false, /* use relative address */
         "" /* default arch */
     );

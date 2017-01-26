@@ -12,6 +12,29 @@ SIGBUS = 10
 SIGSEGV = 11
 
 
+def combine_frame(reference, override):
+    """Combines a reference frame with override data.  In case the override
+    data does not have a symbol in it, then `None` is returned.
+    """
+    if override['symbol_name'] is None:
+        return None
+    rv = dict(reference)
+    for key in 'symbol_name', 'filename', 'line', 'column':
+        val = override.get(key)
+        if val is not None or key not in rv:
+            rv[key] = val
+    return rv
+
+
+def combine_frames(reference, overrides):
+    rv = []
+    for frame in overrides:
+        new_frame = combine_frame(reference, frame)
+        if new_frame is not None:
+            rv.append(new_frame)
+    return rv
+
+
 def get_previous_instruction(addr, cpu_name):
     if cpu_name.startswith('arm64'):
         return (addr & -4) - 4
@@ -35,29 +58,6 @@ def truncate_instruction(addr, cpu_name):
         return addr & -4
     elif cpu_name.startswith('arm'):
         return addr & -2
-    return addr
-
-
-def find_instruction(addr, cpu_name, meta=None):
-    addr = parse_addr(addr)
-
-    # In case we're not on the crashing frame we apply a simple heuristic:
-    # since we're most likely dealing with return addresses we just assume
-    # that the call is one instruction behind the current one.
-    if not meta or meta.get('frame_number') != 0:
-        return get_previous_instruction(addr, cpu_name)
-
-    # In case registers are available we can check if the PC register
-    # does not match the given address we have from the first frame.
-    # If that is the case and we got one of a few signals taht are likely
-    # it seems that going with one instruction back is actually the
-    # correct thing to do.
-    regs = meta.get('registers')
-    if cpu_name[:3] == 'arm' and regs and 'pc' in regs \
-       and parse_addr(regs['pc']) != addr and \
-       meta.get('signal') in (SIGILL, SIGBUS, SIGSEGV):
-        return get_previous_instruction(addr, cpu_name)
-
     return addr
 
 
@@ -178,9 +178,40 @@ class ReportSymbolizer(object):
                 break
 
     def find_image(self, addr):
-        idx = bisect.bisect_left(self._image_addresses, addr)
+        """Given an instruction address this locates the image this address
+        is contained in.
+        """
+        idx = bisect.bisect_left(self._image_addresses, parse_addr(addr))
         if idx > 0:
             return self._image_references[self._image_addresses[idx - 1]]
+
+    def find_best_instruction(self, addr, cpu_name=None, meta=None):
+        """Given an instruction and meta information this attempts to find
+        the best instruction for the frame.  In some circumstances we can
+        fix it up a bit to improve the accuracy.  For more information see
+        `symbolize_frame`.
+        """
+        addr = parse_addr(addr)
+        cpu_name = cpu_name or self.cpu_name
+
+        # In case we're not on the crashing frame we apply a simple heuristic:
+        # since we're most likely dealing with return addresses we just assume
+        # that the call is one instruction behind the current one.
+        if not meta or meta.get('frame_number') != 0:
+            return get_previous_instruction(addr, cpu_name)
+
+        # In case registers are available we can check if the PC register
+        # does not match the given address we have from the first frame.
+        # If that is the case and we got one of a few signals taht are likely
+        # it seems that going with one instruction back is actually the
+        # correct thing to do.
+        regs = meta.get('registers')
+        if cpu_name[:3] == 'arm' and regs and 'pc' in regs \
+           and parse_addr(regs['pc']) != addr and \
+           meta.get('signal') in (SIGILL, SIGBUS, SIGSEGV):
+            return get_previous_instruction(addr, cpu_name)
+
+        return addr
 
     def symbolize_frame(self, frame, silent=True, demangle=True,
                         symbolize_inlined=False, meta=None):
@@ -214,37 +245,26 @@ class ReportSymbolizer(object):
             if cpu_name is None:
                 raise SymbolicationError('The CPU name was not provided')
 
-            instruction_addr = find_instruction(
+            instruction_addr = self.find_best_instruction(
                 frame['instruction_addr'], cpu_name, meta)
 
             img = self.find_image(instruction_addr)
-            if img is None:
-                raise SymbolicationError('Could not find image')
-
-            rv = self.driver.symbolize(
-                img['dsym_path'], img['image_vmaddr'],
-                img['image_addr'], instruction_addr,
-                cpu_name, demangle=demangle,
-                symbolize_inlined=symbolize_inlined)
-
-            if not symbolize_inlined:
-                if rv is None or rv['symbol_name'] is None:
-                    return
-                return dict(frame, **rv)
-
-            sym_rv = []
-            for frame_rv in rv or ():
-                if frame_rv['symbol_name'] is not None:
-                    sym_rv.append(dict(frame, **frame_rv))
-                else:
-                    sym_rv.append(dict(frame))
-
-            return sym_rv
+            if img is not None:
+                rv = self.driver.symbolize(
+                    img['dsym_path'], img['image_vmaddr'],
+                    img['image_addr'], instruction_addr,
+                    cpu_name, demangle=demangle,
+                    symbolize_inlined=symbolize_inlined)
+                if not symbolize_inlined:
+                    return combine_frame(frame, rv)
+                return combine_frames(frame, rv)
         except SymbolicationError:
             if not silent:
                 raise
-            if symbolize_inlined:
-                return []
+
+        # Default return value for missing matches
+        if symbolize_inlined:
+            return []
 
     def symbolize_backtrace(self, backtrace, demangle=True, meta=None,
                             symbolize_inlined=True):

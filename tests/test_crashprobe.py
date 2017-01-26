@@ -41,6 +41,8 @@ def _load_dsyms_and_symbolize_stacktrace(filename, version, build, cpu, res_path
     if 'mechanism' in exc:
         if 'posix_signal' in exc['mechanism']:
             meta['signal'] = exc['mechanism']['posix_signal']['signal']
+    if 'registers' in stacktrace:
+        meta['registers'] = stacktrace['registers']
     bt = rep.symbolize_backtrace(stacktrace['frames'][::-1],
                                  symbolize_inlined=True,
                                  meta=meta)

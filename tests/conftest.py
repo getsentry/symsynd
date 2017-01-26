@@ -85,6 +85,13 @@ class DiffReport(object):
                      (new_passed, new_failed))
 
 
+def pytest_addoption(parser):
+    group = parser.getgroup('general')
+    group.addoption('--fail-debugskip',
+           action='store_true', dest='fail_debugskip', default=False,
+           help='do not ignore debugskip tests but fail them')
+
+
 def pytest_configure(config):
     global diff_report
     diff_report = DiffReport(config)
@@ -97,8 +104,13 @@ def pytest_unconfigure(config):
         diff_report.diff_with_run(old_run)
 
 
-from _pytest import terminal
-print(dir(terminal))
+def change_some_failed_to_skipped(item, rep):
+    if item.config.option.fail_debugskip:
+        return
+    if item.parent and 'test_crashprobe.py' in item.parent.nodeid and \
+       '-debug-' in item.nodeid:
+        rep.outcome = 'skipped'
+        rep._wasdebugskip = True
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
@@ -106,7 +118,14 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     rep = outcome.get_result()
     if rep.when == 'call':
+        if rep.outcome == 'failed':
+            change_some_failed_to_skipped(item ,rep)
         diff_report.record_result(item.nodeid, rep.outcome)
+
+
+def pytest_report_teststatus(report):
+    if getattr(report, '_wasdebugskip', False):
+        return 'DEBUGFAILED', 'x', 'DEBUGFAIL'
 
 
 @pytest.fixture(scope='module')

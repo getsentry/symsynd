@@ -366,12 +366,23 @@ def test_call_abort(res_path, driver, version, cpu):
     _test_doCrash_call(bt)
 
 
-@pytest.mark.xfail(reason='App crash does not generate any report')
 @pytest.mark.parametrize("version, cpu", TEST_PARAMETER)
 def test_corrupt_malloc_s_internal_tracking_information(res_path, driver, version, cpu):
+    bt, report = _load_dsyms_and_symbolize_stacktrace(
+        "Corrupt malloc()'s internal tracking information.json",
+        version,
+        cpu,
+        res_path,
+        driver
+    )
     # http://www.crashprobe.com/ios/16/
-    # App crashes and generates no report
-    raise Exception('App crashes and generates no report')
+    # -[CRLCrashCorruptMalloc crash] (CRLCrashCorruptMalloc.m:46)
+    # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
+    bt = _filter_system_frames(bt)
+    assert bt[0]['symbol_name'] == '-[CRLCrashCorruptMalloc crash]'
+    assert basename(bt[0]['filename']) == 'CRLCrashCorruptMalloc.m'
+    assert bt[0]['line'] == 46
+    _test_doCrash_call(bt)
 
 
 @pytest.mark.xfail(reason='App crash does not generate any report')

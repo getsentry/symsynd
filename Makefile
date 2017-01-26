@@ -21,7 +21,7 @@ fast-test:
 	py.test --tb=short tests -vv
 
 test: develop
-	pip install pytest
+	pip install pytest==3.0.6
 	$(MAKE) fast-test
 
 clean:

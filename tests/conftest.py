@@ -125,7 +125,7 @@ def pytest_runtest_makereport(item, call):
 
 def pytest_report_teststatus(report):
     if getattr(report, '_wasdebugskip', False):
-        return 'DEBUGFAILED', 'x', 'DEBUGFAIL'
+        return 'debugfailed', 'x', 'DEBUGFAIL'
 
 
 @pytest.fixture(scope='module')

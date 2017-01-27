@@ -68,6 +68,17 @@ def get_image_cpu_name(image):
     return get_cpu_name(image['cpu_type'], image['cpu_subtype'])
 
 
+def get_ip_register(registers, cpu_name):
+    if not registers:
+        rv = None
+    elif cpu_name[:3] == 'arm':
+        rv = registers.get('pc')
+    elif cpu_name == 'x86_64':
+        rv = registers.get('rip')
+    if rv is not None:
+        return parse_addr(rv)
+
+
 def find_debug_images(dsym_paths, binary_images):
     images_to_load = set()
 
@@ -206,8 +217,9 @@ class ReportSymbolizer(object):
         # it seems that going with one instruction back is actually the
         # correct thing to do.
         regs = meta.get('registers')
-        if cpu_name[:3] == 'arm' and regs and 'pc' in regs \
-           and parse_addr(regs['pc']) != addr and \
+
+        ip = get_ip_register(regs, cpu_name)
+        if ip is not None and ip != addr and \
            meta.get('signal') in (SIGILL, SIGBUS, SIGSEGV):
             return get_previous_instruction(addr, cpu_name)
 

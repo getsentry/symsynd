@@ -62,9 +62,10 @@ elif [ x$SYMSYND_MACWHEELS == x1 ]; then
   mkdir -p .build-venvs
 
   for pyver in 2.7; do
-    pybin="/Library/Frameworks/Python.framework/Versions/$pyver/bin"
+    pybin="/System/Library/Frameworks/Python.framework/Versions/$pyver/bin"
     py="$pybin/python"
     check_mac_py $py
+    easy_install virtualenv
     virtualenv .build-venvs/$pyver -p $py
     .build-venvs/$pyver/bin/pip install --upgrade wheel
     .build-venvs/$pyver/bin/python setup.py bdist_wheel $WHEEL_OPTIONS

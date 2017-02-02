@@ -41,7 +41,7 @@ def find_wheels():
     dist = os.path.join('dist')
     for filename in os.listdir(dist):
         if filename.endswith('.whl'):
-            yield os.path.join(dist, fileanme)
+            yield os.path.join(dist, filename)
 
 
 def get_target_executable_name():

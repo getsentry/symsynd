@@ -30,6 +30,7 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       make manylinux-wheels;
     elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      sudo easy_install virtualenv;
       make mac-wheels;
     fi
 

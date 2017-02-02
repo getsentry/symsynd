@@ -13,17 +13,23 @@ addons:
     - g++-4.8
     - clang
 
+matrix:
+  include:
+    - os: linux
+    - os: osx
+      # Build on older OS X for more portable binaries
+      osx_image: xcode6.4
+
 install:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget --no-check-certificate https://cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then tar -xzf cmake-3.4.3-Linux-x86_64.tar.gz; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH=$PWD/cmake-3.4.3-Linux-x86_64/bin:$PATH; fi
-  - make develop
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then wget --no-check-certificate https://cmake.org/files/v3.4/cmake-3.4.3-Darwin-x86_64.tar.gz; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tar -xzf cmake-3.4.3-Darwin-x86_64.tar.gz; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export PATH=$PWD/cmake-3.4.3-Darwin-x86_64/bin:$PATH; fi
 
 script:
   - mkdir -p target
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       make manylinux-wheels
-    else
+    elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       make mac-wheels
     fi
 

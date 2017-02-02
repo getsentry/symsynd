@@ -28,9 +28,9 @@ install:
 script:
   - mkdir -p target
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      make manylinux-wheels
+      make manylinux-wheels;
     elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      make mac-wheels
+      make mac-wheels;
     fi
 
 deploy:

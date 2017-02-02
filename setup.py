@@ -7,11 +7,9 @@ import subprocess
 # never actually link against libpython.  Since there does not appear to
 # be an API to do that, we just patch the internal function that wheel uses.
 try:
-    from wheel import pep425tags
+    from wheel.bdist_wheel import bdist_wheel
 except ImportError:
-    pass
-else:
-    pep425tags.get_abi_tag = lambda: 'none'
+    bdist_wheel = None
 
 from setuptools import setup, find_packages
 from distutils.command.build_py import build_py
@@ -60,6 +58,20 @@ class CustomBuildExt(build_ext):
             build_libsymboizer(build_py.get_package_dir(PACKAGE))
 
 
+cmdclass = {
+    'build_ext': CustomBuildExt,
+    'build_py': CustomBuildPy,
+}
+
+
+if bdist_wheel is not None:
+    class CustomBdistWheel(bdist_wheel):
+        def get_tag(self):
+            rv = bdist_wheel.get_tag(self)
+            return ('py2.py3', 'none') + rv[2:]
+    cmdclass['bdist_wheel'] = CustomBdistWheel
+
+
 setup(
     name='symsynd',
     version='2.0.0',
@@ -71,10 +83,7 @@ setup(
     packages=find_packages(),
     cffi_modules=['build.py:demangle_ffi',
                   'build.py:sym_ffi'],
-    cmdclass={
-        'build_ext': CustomBuildExt,
-        'build_py': CustomBuildPy,
-    },
+    cmdclass=cmdclass,
     include_package_data=True,
     zip_safe=False,
     platforms='any',

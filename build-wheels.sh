@@ -39,7 +39,7 @@ fi
 # In case we would want multiple builds in the future we would need to delete
 # .eggs and build between the builds.
 if [ x$SYMSYND_MANYLINUX == x1 ]; then
-  for py in cp27-cp27mu cp33-cp33m cp34-cp34m cp35-cp35m; do
+  for py in cp27-cp27mu; do
     pybin="/opt/python/$py/bin"
     $pybin/pip install wheel
     $pybin/python setup.py bdist_wheel $WHEEL_OPTIONS
@@ -61,9 +61,9 @@ elif [ x$SYMSYND_MACWHEELS == x1 ]; then
 
   mkdir -p .build-venvs
 
-  for pyver in 2.7 3.3 3.4 3.5; do
+  for pyver in 2.7; do
     pybin="/Library/Frameworks/Python.framework/Versions/$pyver/bin"
-    py="$pybin/python${pyver:0:1}"
+    py="$pybin/python"
     check_mac_py $py
     virtualenv .build-venvs/$pyver -p $py
     .build-venvs/$pyver/bin/pip install --upgrade wheel

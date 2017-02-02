@@ -8,7 +8,7 @@ MACOS_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET:-0}
 
 export MACOSX_DEPLOYMENT_TARGET=
 
-# Make sure we compile against the 10.9 SDK.  See also build-wheels.sh
+# Make sure we compile against the 10.10 SDK.  See also build-wheels.sh
 if [ `uname` == "Darwin" ] && [ "x$MACOSX_DEPLOYMENT_TARGET" != x ]; then
   XCODE_SDKS="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs"
   if [ ! -d "${XCODE_SDKS}/MacOSX${MACOSX_DEPLOYMENT_TARGET}.sdk" ]; then

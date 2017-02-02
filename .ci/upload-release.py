@@ -16,8 +16,7 @@ AUTH_TOKEN = os.environ['GITHUB_AUTH_TOKEN']
 AUTH = (AUTH_USERNAME, AUTH_TOKEN)
 TAG = os.environ.get('TRAVIS_TAG') or \
     os.environ.get('APPVEYOR_REPO_TAG_NAME') or os.environ.get('BUILD_TAG')
-TARGET = os.environ.get('TARGET')
-BIN_TYPE = os.environ.get('BIN_TYPE', 'release')
+NAME = 'symsynd'
 REPO = 'getsentry/symsynd'
 
 if sys.platform.startswith('win'):
@@ -38,14 +37,11 @@ def api_request(method, path, **kwargs):
     return requests.request(method, url, auth=AUTH, verify=False, **kwargs)
 
 
-def find_executable():
-    if TARGET:
-        path = os.path.join('target', TARGET, BIN_TYPE, 'sentry-cli' + EXT)
-        if os.path.isfile(path):
-            return path
-    path = os.path.join('target', BIN_TYPE, 'sentry-cli' + EXT)
-    if os.path.isfile(path):
-        return path
+def find_wheels():
+    dist = os.path.join('dist')
+    for filename in os.listdir(dist):
+        if filename.endswith('.whl'):
+            yield os.path.join(dist, fileanme)
 
 
 def get_target_executable_name():
@@ -64,7 +60,7 @@ def ensure_release():
             return release
     resp = api_request('POST', 'repos/%s/releases' % REPO, json={
         'tag_name': TAG,
-        'name': 'sentry-cli %s' % TAG,
+        'name': '%s %s' % (NAME, TAG),
         'draft': True,
     })
     resp.raise_for_status()
@@ -73,34 +69,40 @@ def ensure_release():
     return release
 
 
-def upload_asset(release, executable, target_name):
-    resp = api_request('GET', release['assets_url'])
-    resp.raise_for_status()
-    for asset in resp.json():
-        if asset['name'] == target_name:
-            log('Already have release asset %s. Skipping' % target_name)
+def upload_asset(release, path, asset_info):
+    asset_name = os.path.basename(path)
+    for asset in asset_info:
+        if asset['name'] == asset_name:
+            log('Already have release asset %s. Skipping' % asset_name)
             return
 
     upload_url = release['upload_url'].split('{')[0]
-    with open(executable, 'rb') as f:
-        log('Creating new release asset %s.' % target_name)
+    with open(path, 'rb') as f:
+        log('Creating new release asset %s.' % asset_name)
         resp = api_request('POST', upload_url,
-                           params={'name': target_name},
+                           params={'name': asset_name},
                            headers={'Content-Type': 'application/octet-stream'},
                            data=f)
         resp.raise_for_status()
 
 
+def upload_assets(release, wheels):
+    resp = api_request('GET', release['assets_url'])
+    resp.raise_for_status()
+    asset_info = resp.json()
+    for wheel in wheels:
+        upload_asset(release, wheel, asset_info)
+
+
 def main():
     if not TAG:
         return log('No tag specified.  Doing nothing.')
-    executable = find_executable()
-    if executable is None:
-        return log('Could not locate executable.  Doing nothing.')
+    wheels = list(find_wheels())
+    if not wheels:
+        return log('Could not locate wheels.  Doing nothing.')
 
-    target_executable_name = get_target_executable_name()
     release = ensure_release()
-    upload_asset(release, executable, target_executable_name)
+    upload_assets(release, wheels)
 
 
 if __name__ == '__main__':

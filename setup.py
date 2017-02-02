@@ -62,7 +62,7 @@ class CustomBuildExt(build_ext):
 
 setup(
     name='symsynd',
-    version='1.3.0',
+    version='2.0.0',
     url='http://github.com/getsentry/symsynd',
     description='Helps symbolicating crash dumps.',
     license='BSD',

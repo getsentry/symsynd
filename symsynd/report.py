@@ -249,7 +249,6 @@ class ReportSymbolizer(object):
             matters is ``pc`` on arm CPUs however this might change in the
             future.
         """
-        img_addr = frame.get('object_addr') or frame.get('image_addr')
         cpu_name = frame.get('cpu_name') or (
             meta and meta.get('cpu_name')) or self.cpu_name
 

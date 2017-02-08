@@ -136,7 +136,7 @@ def find_debug_images(dsym_paths, binary_images):
             uid = image['uuid'].lower()
             if uid not in images:
                 continue
-            rv[image['image_addr']] = {
+            rv[parse_addr(image['image_addr'])] = {
                 'uuid': uid,
                 'image_addr': image['image_addr'],
                 'dsym_path': images[uid],
@@ -170,12 +170,7 @@ class ReportSymbolizer(object):
         # This mapping is the mapping that the report symbolizer actually
         # uses.  The `images` mapping is primarily for extenral consumers
         # that want to see what images exist in the symbolizer.
-        self._image_addresses = []
-        self._image_references = {}
-        for img in self.images.itervalues():
-            img_addr = parse_addr(img['image_addr'])
-            self._image_addresses.append(img_addr)
-            self._image_references[img_addr] = img
+        self._image_addresses = list(self.images)
         self._image_addresses.sort()
 
         # This should always succeed but you never quite know.
@@ -194,7 +189,7 @@ class ReportSymbolizer(object):
         """
         idx = bisect.bisect_left(self._image_addresses, parse_addr(addr))
         if idx > 0:
-            return self._image_references[self._image_addresses[idx - 1]]
+            return self.images[self._image_addresses[idx - 1]]
 
     def find_best_instruction(self, addr, cpu_name=None, meta=None):
         """Given an instruction and meta information this attempts to find

@@ -33,12 +33,12 @@ def truncate_instruction(addr, cpu_name):
 
 
 def get_ip_register(registers, cpu_name):
-    if not registers:
-        rv = None
-    elif cpu_name[:3] == 'arm':
-        rv = registers.get('pc')
-    elif cpu_name == 'x86_64':
-        rv = registers.get('rip')
+    rv = None
+    if registers:
+        if cpu_name[:3] == 'arm':
+            rv = registers.get('pc')
+        elif cpu_name == 'x86_64':
+            rv = registers.get('rip')
     if rv is not None:
         return parse_addr(rv)
 

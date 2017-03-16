@@ -186,7 +186,7 @@ def test_message_a_released_object(res_path, driver, version, build, cpu):
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '__31-[CRLCrashReleasedObject crash]_block_invoke'
     assert basename(bt[0]['filename']) == 'CRLCrashReleasedObject.m'
-    assert bt[0]['line'] == cpu == 'arm64' and 51 or 53
+    assert bt[0]['line'] == (cpu == 'arm64' and 51 or 53)
     assert bt[1]['symbol_name'] == '-[CRLCrashReleasedObject crash]'
     assert basename(bt[1]['filename']) == 'CRLCrashReleasedObject.m'
     assert bt[1]['line'] == 49
@@ -234,7 +234,7 @@ def test_execute_a_privileged_instruction(res_path, driver, version, build, cpu)
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashPrivInst crash]'
     assert basename(bt[0]['filename']) == 'CRLCrashPrivInst.m'
-    assert bt[0]['line'] == cpu == 'arm64' and 52 or 42
+    assert bt[0]['line'] == (cpu == 'arm64' and 52 or 42)
     _test_doCrash_call(bt)
 
 
@@ -257,7 +257,7 @@ def test_execute_an_undefined_instruction(res_path, driver, version, build, cpu)
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashUndefInst crash]'
     assert basename(bt[0]['filename']) == 'CRLCrashUndefInst.m'
-    assert bt[0]['line'] == cpu == 'arm64' and 50 or 42
+    assert bt[0]['line'] == (cpu == 'arm64' and 50 or 42)
     _test_doCrash_call(bt)
 
 
@@ -302,7 +302,7 @@ def test_dereference_a_bad_pointer(res_path, driver, version, build, cpu):
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashGarbage crash]'
     assert basename(bt[0]['filename']) == 'CRLCrashGarbage.m'
-    assert bt[0]['line'] == cpu == 'arm64' and 52 or 48
+    assert bt[0]['line'] == (cpu == 'arm64' and 52 or 48)
     # TODO check here we have one more frame on arm64 from kscrash
     _test_doCrash_call(bt, cpu == 'arm64' and 2 or 1)
 

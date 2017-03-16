@@ -189,8 +189,11 @@ class ReportSymbolizer(object):
             if cpu_name is None:
                 raise SymbolicationError('The CPU name was not provided')
 
-            instruction_addr = self.find_best_instruction(
-                frame['instruction_addr'], cpu_name, meta)
+            if meta:
+                instruction_addr = self.find_best_instruction(
+                    frame['instruction_addr'], cpu_name, meta)
+            else:
+                instruction_addr = parse_addr(frame['instruction_addr'])
 
             img = self.find_image(instruction_addr)
             if img is not None:

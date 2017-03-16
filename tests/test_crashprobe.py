@@ -234,7 +234,14 @@ def test_execute_a_privileged_instruction(res_path, driver, version, build, cpu)
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashPrivInst crash]'
     assert basename(bt[0]['filename']) == 'CRLCrashPrivInst.m'
-    assert bt[0]['line'] == (cpu == 'arm64' and 52 or 42)
+    if cpu == 'arm64':
+        assert bt[0]['line'] == 52
+    elif cpu == 'armv7':
+        assert bt[0]['line'] == 42
+    elif cpu == 'x86_64':
+        assert bt[0]['line'] == 40
+    else:
+        assert False
     _test_doCrash_call(bt)
 
 
@@ -257,7 +264,14 @@ def test_execute_an_undefined_instruction(res_path, driver, version, build, cpu)
     bt = _filter_system_frames(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashUndefInst crash]'
     assert basename(bt[0]['filename']) == 'CRLCrashUndefInst.m'
-    assert bt[0]['line'] == (cpu == 'arm64' and 50 or 42)
+    if cpu == 'arm64':
+        assert bt[0]['line'] == 50
+    elif cpu == 'armv7':
+        assert bt[0]['line'] == 42
+    elif cpu == 'x86_64':
+        assert bt[0]['line'] == 40
+    else:
+        assert False
     _test_doCrash_call(bt)
 
 

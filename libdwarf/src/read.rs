@@ -1,22 +1,16 @@
 use std::io;
 use std::fs;
-use std::str::from_utf8;
-use std::rc::Rc;
 use std::ops::Deref;
 use std::path::Path;
-use std::collections::BTreeMap;
 use std::ffi::OsStr;
 use std::os::unix::ffi::OsStrExt;
 
 use gimli;
 use memmap;
-use mach_object::{OFile, FatArch, Section, LoadCommand,
-                  cpu_type_t, cpu_subtype_t, get_arch_from_flag};
+use mach_object::{OFile, LoadCommand, get_arch_from_flag};
 
 use error::{Result, Error};
 
-
-type CpuTuple = (cpu_type_t, cpu_subtype_t);
 
 enum Backing<'a> {
     Mmap(memmap::Mmap),
@@ -40,7 +34,6 @@ impl<'a> Deref for Backing<'a> {
 pub struct DebugInfo<'a> {
     backing: Backing<'a>,
     ofile: OFile,
-    archs: BTreeMap<CpuTuple, Option<FatArch>>, 
 }
 
 
@@ -67,12 +60,9 @@ impl<'a> DebugInfo<'a> {
             let mut cursor = io::Cursor::new(&backing[..]);
             OFile::parse(&mut cursor)?
         };
-        let mut archs = BTreeMap::new();
-        find_archs(&mut archs, &ofile, None);
         Ok(DebugInfo {
             backing: backing,
             ofile: ofile,
-            archs: archs,
         })
     }
 
@@ -167,8 +157,4 @@ impl<'a> DebugInfo<'a> {
         }
         Err(Error::NoSuchAttribute)
     }
-}
-
-fn find_archs(mut archs: &mut BTreeMap<CpuTuple, Option<FatArch>>, ofile: &OFile,
-              fat_arch: Option<FatArch>) {
 }

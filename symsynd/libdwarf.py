@@ -27,7 +27,7 @@ def rustcall(func, *args):
     raise exc
 
 
-class DebugInfo(object):
+class DwarfDebugInfo(object):
 
     def __init__(self):
         raise TypeError('Cannot instanciate debug infos')
@@ -44,6 +44,9 @@ class DebugInfo(object):
         return DebugInfo._from_ptr(di)
 
     def get_compilation_dir(self, cpu_name, path):
+        if self._ptr is None:
+            raise RuntimeError('Debug info closed')
+
         try:
             rv = rustcall(_lib.dwarf_debug_info_get_compilation_dir,
                           self._ptr, to_bytes(cpu_name), to_bytes(path))
@@ -54,10 +57,13 @@ class DebugInfo(object):
         except exceptions.DwarfLookupError:
             pass
 
+    def close(self):
+        if self._ptr:
+            _lib.dwarf_debug_info_free(self._ptr)
+        self._ptr = None
+
     def __del__(self):
         try:
-            if self._ptr:
-                _lib.dwarf_debug_info_free(self._ptr)
-            self._ptr = None
+            self.close()
         except Exception:
             pass

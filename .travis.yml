@@ -24,6 +24,10 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then wget --no-check-certificate https://cmake.org/files/v3.4/cmake-3.4.3-Darwin-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tar -xzf cmake-3.4.3-Darwin-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export PATH=$PWD/cmake-3.4.3-Darwin-x86_64/CMake.app/Contents/bin:$PATH; fi
+  - curl https://sh.rustup.rs -sSf | sh -s -- -y
+  - export PATH="${HOME}/.cargo/bin:${PATH}"
+  - which cargo
+  - which rustc
 
 script:
   - mkdir -p target

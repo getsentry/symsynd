@@ -11,6 +11,7 @@ pub type Result<T> = ::std::result::Result<T, Error>;
 /// Represents errors of the library
 #[derive(Debug)]
 pub enum Error {
+    Internal,
     NoSuchArch,
     NoSuchSection,
     NoSuchAttribute,
@@ -40,6 +41,7 @@ impl From<gimli::Error> for Error {
 impl ::std::error::Error for Error {
     fn description(&self) -> &str {
         match *self {
+            Error::Internal => "an internal error ocurred",
             Error::NoSuchArch => "no such architecture",
             Error::NoSuchSection => "no such section",
             Error::NoSuchAttribute => "no such attribute",
@@ -53,6 +55,7 @@ impl ::std::error::Error for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            Error::Internal => write!(f, "an intenral error ocurred"),
             Error::NoSuchArch => write!(f, "no such architecture"),
             Error::NoSuchSection => write!(f, "no such section"),
             Error::NoSuchAttribute => write!(f, "no such attribute"),

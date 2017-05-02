@@ -3,6 +3,10 @@ name = "libdwarf"
 version = "0.1.0"
 authors = ["Armin Ronacher <armin.ronacher@active-4.com>"]
 
+[lib]
+name = "libdwarf"
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 gimli = "0.13.0"
 memmap = "0"

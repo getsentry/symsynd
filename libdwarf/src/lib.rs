@@ -5,6 +5,7 @@ extern crate mach_object;
 
 mod read;
 mod error;
+pub mod cabi;
 
 pub use error::{Result, Error};
 pub use read::DebugInfo;

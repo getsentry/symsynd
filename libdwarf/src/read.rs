@@ -2,7 +2,7 @@ use std::io;
 use std::fs;
 use std::ops::Deref;
 use std::path::Path;
-use std::ffi::OsStr;
+use std::ffi::{CStr, OsStr};
 use std::os::unix::ffi::OsStrExt;
 
 use gimli;
@@ -28,6 +28,10 @@ impl<'a> Deref for Backing<'a> {
             Backing::Slice(slice) => slice,
         }
     }
+}
+
+fn cstr_as_path(s: &CStr) -> &Path {
+    Path::new(OsStr::from_bytes(s.to_bytes()))
 }
 
 /// Convenient access to a subset of debug info relevant for symsynd
@@ -127,6 +131,13 @@ impl<'a> DebugInfo<'a> {
     pub fn get_compilation_dir(&'a self, cpu_name: &str, filename: &Path)
         -> Result<&'a Path>
     {
+        self.get_compilation_dir_cstr(cpu_name, filename).map(cstr_as_path)
+    }
+
+    /// Like `get_compilation_dir` but returns a `CStr`.
+    pub fn get_compilation_dir_cstr(&'a self, cpu_name: &str, filename: &Path)
+        -> Result<&'a CStr>
+    {
         let info_slice = self.get_section(cpu_name, "__DWARF", "__debug_info")?;
         let abbrev_slice = self.get_section(cpu_name, "__DWARF", "__debug_abbrev")?;
         let strings = gimli::DebugStr::<gimli::LittleEndian>::new(
@@ -143,12 +154,10 @@ impl<'a> DebugInfo<'a> {
                 if_chain! {
                     if entry.tag() == gimli::DW_TAG_compile_unit;
                     if let Some(comp_dir) = entry.attr(gimli::DW_AT_comp_dir)?
-                        .and_then(|attr| attr.string_value(&strings))
-                        .map(|cstr| Path::new(OsStr::from_bytes(cstr.to_bytes())));
+                        .and_then(|attr| attr.string_value(&strings));
                     if let Some(name) = entry.attr(gimli::DW_AT_name)?
-                        .and_then(|attr| attr.string_value(&strings))
-                        .map(|cstr| Path::new(OsStr::from_bytes(cstr.to_bytes())));
-                    if &comp_dir.join(name) == filename;
+                        .and_then(|attr| attr.string_value(&strings));
+                    if &cstr_as_path(comp_dir).join(cstr_as_path(name)) == filename;
                     then {
                         return Ok(comp_dir);
                     }

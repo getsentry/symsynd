@@ -16,3 +16,19 @@ class SymbolicationError(Exception):
 
 class DwarfError(SymbolicationError):
     pass
+
+
+class DwarfLookupError(DwarfError):
+    pass
+
+
+class NoSuchArch(DwarfLookupError):
+    pass
+
+
+class NoSuchSection(DwarfLookupError):
+    pass
+
+
+class NoSuchAttribute(DwarfLookupError):
+    pass

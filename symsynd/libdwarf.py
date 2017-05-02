@@ -1,5 +1,5 @@
 import os
-from symsynd.exceptions import DwarfError
+from symsynd import exceptions
 from symsynd._dwarf import ffi as _ffi
 from symsynd._compat import to_bytes, text_type
 
@@ -7,7 +7,11 @@ from symsynd._compat import to_bytes, text_type
 _lib = _ffi.dlopen(os.path.join(os.path.dirname(__file__), '_libdwarf.so'))
 
 
-special_errors = {}
+special_errors = {
+    2: exceptions.NoSuchArch,
+    3: exceptions.NoSuchSection,
+    4: exceptions.NoSuchAttribute,
+}
 
 
 def rustcall(func, *args):
@@ -16,7 +20,7 @@ def rustcall(func, *args):
     if not err[0].failed:
         return rv
     try:
-        cls = special_errors.get(err[0].code, DwarfError)
+        cls = special_errors.get(err[0].code, exceptions.DwarfError)
         exc = cls(_ffi.string(err[0].message).decode('utf-8', 'replace'))
     finally:
         _lib.dwarf_buffer_free(err[0].message)
@@ -35,17 +39,20 @@ class DebugInfo(object):
         return rv
 
     @staticmethod
-    def from_path(path):
+    def open_path(path):
         di = rustcall(_lib.dwarf_debug_info_open_path, to_bytes(path))
         return DebugInfo._from_ptr(di)
 
     def get_compilation_dir(self, cpu_name, path):
-        rv = rustcall(_lib.dwarf_debug_info_get_compilation_dir,
-                      self._ptr, to_bytes(cpu_name), to_bytes(path))
-        rv = _ffi.string(rv)
-        if isinstance(path, text_type):
-            rv = rv.decode('utf-8')
-        return rv
+        try:
+            rv = rustcall(_lib.dwarf_debug_info_get_compilation_dir,
+                          self._ptr, to_bytes(cpu_name), to_bytes(path))
+            rv = _ffi.string(rv)
+            if isinstance(path, text_type):
+                rv = rv.decode('utf-8')
+            return rv
+        except exceptions.DwarfLookupError:
+            pass
 
     def __del__(self):
         try:

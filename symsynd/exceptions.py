@@ -12,3 +12,7 @@ class SymbolicationError(Exception):
 
     def __unicode__(self):
         return self.message
+
+
+class DwarfError(SymbolicationError):
+    pass

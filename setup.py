@@ -32,14 +32,23 @@ PACKAGE = 'symsynd'
 EXT_EXT = sys.platform == 'darwin' and '.dylib' or '.so'
 
 
-def build_libsymboizer(base_path):
-    lib_path = os.path.join(base_path, '_libsymbolizer.so')
+def build_libraries(base_path):
     here = os.path.abspath(os.path.dirname(__file__))
     rv = subprocess.Popen(['make', 'build'], cwd=here).wait()
     if rv != 0:
         sys.exit(rv)
+
+    # libsymbolizer
+    lib_path = os.path.join(base_path, '_libsymbolizer.so')
     src_path = os.path.join(here, 'libsymbolizer', 'build', 'lib',
                             'libLLVMSymbolizer' + EXT_EXT)
+    if os.path.isfile(src_path):
+        os.rename(src_path, lib_path)
+
+    # libdwarf
+    lib_path = os.path.join(base_path, '_libdwarf.so')
+    src_path = os.path.join(here, 'libdwarf', 'target', 'release',
+                            'liblibdwarf' + EXT_EXT)
     if os.path.isfile(src_path):
         os.rename(src_path, lib_path)
 
@@ -47,7 +56,7 @@ def build_libsymboizer(base_path):
 class CustomBuildPy(build_py):
     def run(self):
         build_py.run(self)
-        build_libsymboizer(os.path.join(self.build_lib, *PACKAGE.split('.')))
+        build_libraries(os.path.join(self.build_lib, *PACKAGE.split('.')))
 
 
 class CustomBuildExt(build_ext):
@@ -55,7 +64,7 @@ class CustomBuildExt(build_ext):
         build_ext.run(self)
         if self.inplace:
             build_py = self.get_finalized_command('build_py')
-            build_libsymboizer(build_py.get_package_dir(PACKAGE))
+            build_libraries(build_py.get_package_dir(PACKAGE))
 
 
 cmdclass = {
@@ -82,6 +91,7 @@ setup(
     author_email='hello@getsentry.com',
     packages=find_packages(),
     cffi_modules=['build.py:demangle_ffi',
+                  'build.py:dwarf_ffi',
                   'build.py:sym_ffi'],
     cmdclass=cmdclass,
     include_package_data=True,

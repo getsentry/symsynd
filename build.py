@@ -16,6 +16,13 @@ sym_ffi.cdef(_to_source(subprocess.Popen([
     stdout=subprocess.PIPE).communicate()[0]))
 sym_ffi.set_source('symsynd._symbolizer', None)
 
+dwarf_ffi = FFI()
+dwarf_ffi.cdef(_to_source(subprocess.Popen([
+    'cc', '-E', '-DPYTHON_HEADER',
+    'libdwarf/libdwarf.h'],
+    stdout=subprocess.PIPE).communicate()[0]))
+dwarf_ffi.set_source('symsynd._dwarf', None)
+
 demangle_ffi = FFI()
 demangle_ffi.cdef(_to_source(subprocess.Popen([
     'cc', '-E', '-DDM_NOINCLUDE',

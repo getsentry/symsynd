@@ -19,6 +19,7 @@ RUN set -ex \
 ENV SYMSYND_LLVM_DIR /usr/src/symsynd/llvm
 RUN mkdir -p $SYMSYND_LLVM_DIR \
 	&& wget -O- https://github.com/llvm-mirror/llvm/archive/922af1cb46bb89a7bdbf68dfe77b15d1347441d7.tar.gz | tar -xz --strip-components=1 -C $SYMSYND_LLVM_DIR
+RUN curl https://static.rust-lang.org/rustup.sh | sh -s -- --prefix=/usr/local --disable-sudo
 
 RUN mkdir -p /usr/src/symsynd
 WORKDIR /usr/src/symsynd

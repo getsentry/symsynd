@@ -4,7 +4,6 @@ import bisect
 from symsynd.macho.arch import get_cpu_name, get_macho_uuids
 from symsynd.utils import timedsection, parse_addr
 from symsynd.exceptions import SymbolicationError
-from symsynd.heuristics import find_best_instruction
 from symsynd._compat import string_types
 
 
@@ -13,29 +12,6 @@ def get_image_cpu_name(image):
     if cpu_name is not None:
         return cpu_name
     return get_cpu_name(image['cpu_type'], image['cpu_subtype'])
-
-
-def combine_frame(reference, override):
-    """Combines a reference frame with override data.  In case the override
-    data does not have a symbol in it, then `None` is returned.
-    """
-    if override['symbol_name'] is None:
-        return None
-    rv = dict(reference)
-    for key in 'symbol_name', 'filename', 'line', 'column':
-        val = override.get(key)
-        if val is not None or key not in rv:
-            rv[key] = val
-    return rv
-
-
-def combine_frames(reference, overrides):
-    rv = []
-    for frame in overrides:
-        new_frame = combine_frame(reference, frame)
-        if new_frame is not None:
-            rv.append(new_frame)
-    return rv
 
 
 def find_debug_images(dsym_paths, binary_images):
@@ -150,88 +126,25 @@ class ReportSymbolizer(object):
         if idx > 0:
             return self.images[self._image_addresses[idx - 1]]
 
-    def find_best_instruction(self, addr, cpu_name=None, meta=None):
-        """Given an instruction and meta information this attempts to find
-        the best instruction for the frame.  In some circumstances we can
-        fix it up a bit to improve the accuracy.  For more information see
-        `symbolize_frame`.
-        """
-        return find_best_instruction(addr, cpu_name or self.cpu_name, meta)
-
-    def symbolize_frame(self, frame, silent=True, demangle=True,
-                        symbolize_inlined=False, meta=None):
+    def symbolize_frame(self, frame, symbolize_inlined=False):
         """Symbolizes a frame in the context of the report data.  For
         more information see the `Driver.symbolize` method.
-
-        Unlike the lower level driver, this one can perform heuristics on the
-        crash if `meta` is provided.
-
-        `meta` is a dictionary of meta information that can help with
-        the symbolication process.  If it's empty then all heuristics are
-        disabled.  The following keys are currently supported:
-
-        -   ``frame_number``: the number of the source frame.  If this is set
-            to ``0`` then the crashing frame is assumed and various heuristics
-            are enabled.
-        -   ``signal``: the posix signal number if the execution was aborted
-            with a posix signal.  In particular this can help fix some issues
-            with assuming wrong addresses in limited circumstances.
-        -   ``registers``: a dictionary of register values.  The key is the
-            name of the register and the value is the register value as
-            hexadecimal string or integer.  The only register that currently
-            matters is ``pc`` on arm CPUs however this might change in the
-            future.
         """
         cpu_name = frame.get('cpu_name') or (
             meta and meta.get('cpu_name')) or self.cpu_name
 
-        try:
-            if cpu_name is None:
-                raise SymbolicationError('The CPU name was not provided')
+        if cpu_name is None:
+            raise SymbolicationError('The CPU name was not provided')
 
-            if meta:
-                instruction_addr = self.find_best_instruction(
-                    frame['instruction_addr'], cpu_name, meta)
-            else:
-                instruction_addr = parse_addr(frame['instruction_addr'])
+        instruction_addr = parse_addr(frame['instruction_addr'])
 
-            img = self.find_image(instruction_addr)
-            if img is not None:
-                rv = self.driver.symbolize(
-                    img['dsym_path'], img['image_vmaddr'],
-                    img['image_addr'], instruction_addr,
-                    cpu_name, demangle=demangle,
-                    symbolize_inlined=symbolize_inlined)
-                if not symbolize_inlined:
-                    return combine_frame(frame, rv)
-                return combine_frames(frame, rv)
-        except SymbolicationError:
-            if not silent:
-                raise
+        img = self.find_image(instruction_addr)
+        if img is not None:
+            return self.driver.symbolize(
+                img['dsym_path'], img['image_vmaddr'],
+                img['image_addr'], instruction_addr,
+                cpu_name, symbolize_inlined=symbolize_inlined)
 
         # Default return value for missing matches
         if symbolize_inlined:
             return []
-
-    def symbolize_backtrace(self, backtrace, demangle=True, meta=None,
-                            symbolize_inlined=True):
-        """Symbolizes an entire stacktrace.  The crashing frame is expected
-        to be the first item in the list.
-        """
-        rv = []
-        meta = dict(meta or {}, frame_number=None)
-        for idx, frame in enumerate(backtrace):
-            meta['frame_number'] = idx
-            symrv = self.symbolize_frame(frame, demangle=demangle,
-                                         symbolize_inlined=symbolize_inlined,
-                                         meta=meta)
-            if symbolize_inlined:
-                if symrv:
-                    rv.extend(symrv)
-                    continue
-            else:
-                if symrv is not None:
-                    rv.append(symrv)
-                    continue
-            rv.append(frame)
-        return rv

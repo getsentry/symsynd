@@ -3,8 +3,7 @@ import errno
 from threading import RLock
 
 from symsynd.utils import parse_addr, timedsection
-from symsynd.macho.arch import is_valid_cpu_name, get_macho_vmaddr
-from symsynd.demangle import demangle_symbol
+from symsynd.macho.arch import is_valid_cpu_name
 from symsynd.exceptions import SymbolicationError
 from symsynd.libsymbolizer import Symbolizer
 
@@ -22,18 +21,6 @@ def normalize_dsym_path(p):
     if not os.path.isfile(p):
         raise IOError(errno.ENOENT, 'dsym file not found (%s)' % p)
     return p
-
-
-def convert_symbol(sym, demangle=True):
-    symbol_name = sym[0]
-    if demangle:
-        symbol_name = demangle_symbol(symbol_name)
-    return {
-        'symbol_name': symbol_name,
-        'filename': sym[1],
-        'line': sym[2],
-        'column': sym[3],
-    }
 
 
 class Driver(object):
@@ -60,7 +47,7 @@ class Driver(object):
         self._closed = True
 
     def symbolize(self, dsym_path, image_vmaddr, image_addr,
-                  instruction_addr, cpu_name, demangle=True,
+                  instruction_addr, cpu_name,
                   symbolize_inlined=False):
         """Symbolizes a single frame based on the information provided.  If
         the symbolication fails a `SymbolicationError` is raised.
@@ -76,10 +63,6 @@ class Driver(object):
         is used to special case certain behavior and look up the right
         symbols.  Common names are `armv7` and `arm64`.
 
-        The `demangle` parameter controls if demangling should be performed
-        or not.  Currently C++ and (some version of) Swift demangling is
-        supported.
-
         Additionally if `symbolize_inlined` is set to `True` then a list of
         frames is returned instead which might contain inlined frames.  In
         that case the return value might be an empty list instead.
@@ -89,8 +72,6 @@ class Driver(object):
         dsym_path = normalize_dsym_path(dsym_path)
 
         image_vmaddr = parse_addr(image_vmaddr)
-        if not image_vmaddr:
-            image_vmaddr = get_macho_vmaddr(dsym_path, cpu_name) or 0
 
         image_addr = parse_addr(image_addr)
         instruction_addr = parse_addr(instruction_addr)
@@ -102,10 +83,7 @@ class Driver(object):
         with self._lock:
             with timedsection('symbolize'):
                 if symbolize_inlined:
-                    syms = self._symbolizer.symbolize_inlined(
+                    return self._symbolizer.symbolize_inlined(
                         dsym_path, addr, cpu_name)
-                    return [convert_symbol(sym, demangle) for sym in syms]
-                else:
-                    sym = self._symbolizer.symbolize(
-                        dsym_path, addr, cpu_name)
-                    return convert_symbol(sym, demangle)
+                return self._symbolizer.symbolize(
+                    dsym_path, addr, cpu_name)

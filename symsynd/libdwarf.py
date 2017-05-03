@@ -34,14 +34,14 @@ class DwarfDebugInfo(object):
 
     @staticmethod
     def _from_ptr(ptr):
-        rv = object.__new__(DebugInfo)
+        rv = object.__new__(DwarfDebugInfo)
         rv._ptr = ptr
         return rv
 
     @staticmethod
     def open_path(path):
         di = rustcall(_lib.dwarf_debug_info_open_path, to_bytes(path))
-        return DebugInfo._from_ptr(di)
+        return DwarfDebugInfo._from_ptr(di)
 
     def get_compilation_dir(self, cpu_name, path):
         if self._ptr is None:

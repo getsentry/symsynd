@@ -1,9 +1,11 @@
 import os
+import posixpath
 from threading import Lock
 
 from symsynd.exceptions import SymbolicationError
+from symsynd.libdwarf import DwarfDebugInfo
 from symsynd._symbolizer import ffi
-from symsynd._compat import to_bytes
+from symsynd._compat import to_bytes, itervalues
 
 
 lib = ffi.dlopen(os.path.join(os.path.dirname(__file__), '_libsymbolizer.so'))
@@ -33,25 +35,21 @@ def _symstr(ptr):
     return val.decode('utf-8', 'replace')
 
 
-def _make_sym_tuple(rv):
-    return (
-        _symstr(rv.name),
-        _symstr(rv.filename),
-        rv.lineno,
-        rv.column,
-    )
-
-
 class Symbolizer(object):
 
     def __init__(self):
         _init_lib()
         self._ptr = lib.llvm_symbolizer_new()
+        self._debug_infos = {}
 
     def close(self):
         if self._ptr is not None:
             lib.llvm_symbolizer_free(self._ptr)
             self._ptr = None
+        if self._debug_infos:
+            for di in itervalues(self._debug_infos):
+                di.close()
+            self._debug_infos.clear()
 
     def __enter__(self):
         return self
@@ -65,35 +63,59 @@ class Symbolizer(object):
         except Exception:
             pass
 
-    def symbolize(self, module, offset, arch=None, is_data=False):
+    def _get_debug_info(self, dsym_path):
+        rv = self._debug_infos.get(dsym_path)
+        if rv is None:
+            rv = DwarfDebugInfo.open_path(dsym_path)
+            self._debug_infos[dsym_path] = rv
+        return rv
+
+    def _make_frame(self, dsym_path, cpu_name, struct):
+        symbol = _symstr(struct.name)
+        if not symbol:
+            return
+
+        filename = None
+        abs_path = _symstr(struct.filename)
+        if abs_path:
+            di = self._get_debug_info(dsym_path)
+            comp_dir = di.get_compilation_dir(cpu_name, abs_path)
+            if comp_dir and abs_path.startswith(comp_dir):
+                filename = posixpath.relpath(abs_path, comp_dir)
+
+        return {
+            'symbol': symbol,
+            'filename': filename,
+            'abs_path': abs_path,
+            'lineno': struct.lineno,
+            'colno': struct.column,
+        }
+
+    def symbolize(self, dsym_path, offset, cpu_name, is_data=False):
         if self._ptr is None:
             raise RuntimeError('Symbolizer closed')
 
-        if arch is not None:
-            module += ':' + arch
-
         rv = lib.llvm_symbolizer_symbolize(
-            self._ptr, to_bytes(module), offset, is_data and 1 or 0)
+            self._ptr, to_bytes(dsym_path + ':' + cpu_name),
+            offset, is_data and 1 or 0)
         try:
             if rv.error:
                 raise SymbolicationError(_symstr(rv.error))
 
-            return _make_sym_tuple(rv)
+            return self._make_frame(dsym_path, cpu_name, rv)
         finally:
             lib.llvm_symbol_free(rv)
 
-    def symbolize_inlined(self, module, offset, arch=None):
+    def symbolize_inlined(self, dsym_path, offset, cpu_name):
         if self._ptr is None:
             raise RuntimeError('Symbolizer closed')
-
-        if arch is not None:
-            module += ':' + arch
 
         sym_out = ffi.new('llvm_symbol_t ***')
         sym_count_out = ffi.new('size_t *')
 
         err = lib.llvm_symbolizer_symbolize_inlined(
-            self._ptr, to_bytes(module), offset, sym_out, sym_count_out)
+            self._ptr, to_bytes(dsym_path + ':' + cpu_name),
+            offset, sym_out, sym_count_out)
         try:
             if err:
                 assert err.error, 'Error witohut error indicated'
@@ -101,7 +123,10 @@ class Symbolizer(object):
 
             rv = []
             for count in xrange(sym_count_out[0]):
-                rv.append(_make_sym_tuple(sym_out[0][count]))
+                frm = self._make_frame(dsym_path, cpu_name,
+                                       sym_out[0][count])
+                if frm:
+                    rv.append(frm)
             lib.llvm_bulk_symbol_free(sym_out[0], sym_count_out[0])
 
             return rv

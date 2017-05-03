@@ -18,19 +18,12 @@ check_mac_py() {
   "
 }
 
-# If we are building on OS X we make sure that our platform version is compiled
-# OSX SDK 10.10 and then we ensure that we are building all our stuff with that
-# version of the SDK as well.  We accept any python version that is compiled
-# against that sdk or older.
-#
-# Since we build the libsymbolizer separately it's important the same deployment
-# target is also used in the libsymbolizer/build.sh so we do it there as well.
-#
-# For the demangler we set the deployment target to 10.10 in setup.py itself.
+# If we are building on OS X just like this we do not need to set a platform
+# target.  We just accept whatever.
 if [ `uname` == "Darwin" ]; then
-  check_mac_py python
-  export MACOSX_DEPLOYMENT_TARGET=10.10
-  WHEEL_OPTIONS="--plat-name=macosx-10.10-intel"
+  #check_mac_py python
+  #export MACOSX_DEPLOYMENT_TARGET=10.10
+  #WHEEL_OPTIONS="--plat-name=macosx-10.10-intel"
 fi
 
 # Since we do not link against libpython we can just use any of the Pythons

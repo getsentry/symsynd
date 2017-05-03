@@ -3,4 +3,5 @@ recursive-include demangle *
 recursive-include symsynd *
 recursive-include libsymbolizer *
 recursive-exclude libsymbolizer/build *
+recursive-exclude libdwarf/target *
 recursive-include llvm *

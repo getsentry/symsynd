@@ -48,6 +48,13 @@ class Variant(object):
         )
 
 
+def get_cpu_name(type, subtype):
+    try:
+        return str_from_slice(rustcall(_lib.debug_get_cpu_name, type, subtype))
+    except exceptions.NoSuchArch:
+        pass
+
+
 class DebugInfo(object):
 
     def __init__(self):
@@ -86,10 +93,7 @@ class DebugInfo(object):
         ptr = self._get_ptr()
         count = _ffi.new('int *')
         arr = rustcall(_lib.debug_info_get_variants, ptr, count)
-        rv = []
-        for item in xrange(count[0]):
-            rv.append(Variant(arr[item]))
-        return rv
+        return [Variant(arr[x]) for x in range(count[0])]
 
     def close(self):
         if self._ptr:

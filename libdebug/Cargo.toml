@@ -1,0 +1,15 @@
+[package]
+name = "libdebug"
+version = "0.1.0"
+authors = ["Armin Ronacher <armin.ronacher@active-4.com>"]
+
+[lib]
+name = "libdebug"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+gimli = "0.13.0"
+memmap = "0"
+uuid = "0.4"
+mach_object = "0.1.4"
+if_chain = "^0.1.2"

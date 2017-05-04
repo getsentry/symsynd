@@ -45,10 +45,10 @@ def build_libraries(base_path):
     if os.path.isfile(src_path):
         os.rename(src_path, lib_path)
 
-    # libdwarf
-    lib_path = os.path.join(base_path, '_libdwarf.so')
-    src_path = os.path.join(here, 'libdwarf', 'target', 'release',
-                            'liblibdwarf' + EXT_EXT)
+    # libdebug
+    lib_path = os.path.join(base_path, '_libdebug.so')
+    src_path = os.path.join(here, 'libdebug', 'target', 'release',
+                            'liblibdebug' + EXT_EXT)
     if os.path.isfile(src_path):
         os.rename(src_path, lib_path)
 
@@ -91,7 +91,7 @@ setup(
     author_email='hello@getsentry.com',
     packages=find_packages(),
     cffi_modules=['build.py:demangle_ffi',
-                  'build.py:dwarf_ffi',
+                  'build.py:debug_ffi',
                   'build.py:sym_ffi'],
     cmdclass=cmdclass,
     include_package_data=True,

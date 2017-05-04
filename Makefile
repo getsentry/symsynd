@@ -7,7 +7,7 @@ llvm/CMakeLists.txt:
 
 build: llvm/CMakeLists.txt
 	./libsymbolizer/build.sh
-	cd libdwarf; cargo build --release
+	cd libdebug; cargo build --release
 
 sdist: llvm/CMakeLists.txt
 	python setup.py sdist --formats=zip

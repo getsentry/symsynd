@@ -9,8 +9,9 @@
 .build-venvs
 .last-run
 symsynd/_symbolizer.py
-libdwarf/target
-libdwarf/Cargo.lock
+symsynd/_debug.py
+libdebug/target
+libdebug/Cargo.lock
 build
 dist
 llvm

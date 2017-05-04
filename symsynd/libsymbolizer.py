@@ -3,7 +3,7 @@ import posixpath
 from threading import Lock
 
 from symsynd.exceptions import SymbolicationError
-from symsynd.libdwarf import DwarfDebugInfo
+from symsynd.libdebug import DebugInfo
 from symsynd._symbolizer import ffi
 from symsynd._compat import to_bytes, itervalues
 
@@ -66,7 +66,7 @@ class Symbolizer(object):
     def _get_debug_info(self, dsym_path):
         rv = self._debug_infos.get(dsym_path)
         if rv is None:
-            rv = DwarfDebugInfo.open_path(dsym_path)
+            rv = DebugInfo.open_path(dsym_path)
             self._debug_infos[dsym_path] = rv
         return rv
 

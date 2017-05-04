@@ -5,7 +5,7 @@ from threading import RLock
 from symsynd.libdebug import is_valid_cpu_name
 from symsynd.utils import parse_addr, timedsection
 from symsynd.exceptions import SymbolicationError
-from symsynd.libsymbolizer import Symbolizer
+from symsynd.libsymbolizer import Symbolizer as LowLevelSymbolizer
 
 
 def normalize_dsym_path(p):
@@ -17,7 +17,7 @@ def normalize_dsym_path(p):
     return p
 
 
-class Driver(object):
+class Symbolizer(object):
     """The main symbolication driver.  This abstracts around a low level
     LLVM based symbolizer that works with DWARF files.  It's recommended to
     explicitly close the driver to ensure memory cleans up timely.
@@ -27,7 +27,7 @@ class Driver(object):
         self._lock = RLock()
         self._proc = None
         self._closed = False
-        self._symbolizer = Symbolizer()
+        self._symbolizer = LowLevelSymbolizer()
 
     def __enter__(self):
         return self

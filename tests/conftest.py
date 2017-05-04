@@ -188,8 +188,8 @@ def res_path():
 
 @pytest.fixture(scope='function')
 def driver(request):
-    from symsynd.driver import Driver
-    rv = Driver()
+    from symsynd.symbolizer import Symbolizer
+    rv = Symbolizer()
     request.addfinalizer(rv.close)
     return rv
 

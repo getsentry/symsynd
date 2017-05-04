@@ -1,9 +1,11 @@
 import os
-from symsynd.libdebug import DebugInfo, get_cpu_name
+from symsynd.libdebug import DebugInfo, get_cpu_name, get_cpu_type_tuple
 
 
 def test_cpu_names():
     assert get_cpu_name(12, 9) == 'armv7'
+    tup = get_cpu_type_tuple('arm64')
+    assert get_cpu_name(*tup) == 'arm64'
 
 
 def test_uuid(res_path):

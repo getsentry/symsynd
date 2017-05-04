@@ -107,6 +107,22 @@ class DebugInfo(object):
         arr = rustcall(_lib.debug_info_get_variants, ptr, count)
         return [Variant(arr[x]) for x in range(count[0])]
 
+    def get_variant(self, uuid_or_cpu_name):
+        if isinstance(uuid_or_cpu_name, uuid.UUID):
+            id = uuid_or_cpu_name
+            cpu_name = None
+        else:
+            try:
+                id = uuid.UUID(uuid_or_cpu_name)
+                cpu_name = None
+            except ValueError:
+                id = None
+                cpu_name = uuid_or_cpu_name
+        for variant in self.get_variants():
+            if (id is not None and variant.uuid == id) or \
+               (cpu_name is not None and variant.cpu_name == cpu_name):
+                return variant
+
     def close(self):
         if self._ptr:
             _lib.debug_info_free(self._ptr)

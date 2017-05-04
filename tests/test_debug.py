@@ -40,3 +40,6 @@ def test_variants(res_path):
          'uuid': UUID('8094558b-3641-36f7-ba80-a1aaabcf72da'),
          'name': u'<unknown>'}
     ]
+
+    assert di.get_variant('armv7') is not None
+    assert di.get_variant('armv7').uuid == UUID('8094558b-3641-36f7-ba80-a1aaabcf72da')

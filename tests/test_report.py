@@ -1,16 +1,15 @@
 import os
 import json
 import pytest
-from symsynd.report import ReportSymbolizer
 
 
-def test_basic_report(res_path, driver):
+def test_basic_report(res_path, make_report_sym):
     with open(os.path.join(res_path, 'crash-report.json')) as f:
         report = json.load(f)
 
     bt = None
     dsym_path = os.path.join(res_path, 'Crash-Tester.app.dSYM')
-    rep = ReportSymbolizer(driver, dsym_path, report['binary_images'])
+    rep = make_report_sym([dsym_path], report['binary_images'])
     for thread in report['crash']['threads']:
         if thread['crashed']:
             assert bt is None
@@ -145,22 +144,4 @@ def test_basic_report(res_path, driver):
          u'object_name': u'libdyld.dylib',
          u'symbol_addr': 893569708,
          u'symbol_name': u'<redacted>'}
-    ]
-
-
-@pytest.mark.xfail
-def test_swift_report(res_path, driver):
-    with open(os.path.join(res_path, 'swift-crash-report.json')) as f:
-        report = json.load(f)
-
-    bt = None
-    dsym_path = os.path.join(res_path, 'Swift-Tester.app.dSYM')
-    rep = ReportSymbolizer(driver, dsym_path, report['binary_images'])
-    for thread in report['crash']['threads']:
-        if thread['crashed']:
-            assert bt is None
-            bt = rep.symbolize_backtrace(thread['backtrace']['contents'])
-
-    assert bt is not None
-    assert bt == [
     ]

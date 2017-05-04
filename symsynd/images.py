@@ -62,7 +62,6 @@ def find_debug_images(dsym_paths, binary_images):
                             di = DebugInfo.open_path(full_fn)
                         except DebugInfoError:
                             continue
-                        uuids = get_macho_uuids(full_fn)
                         for variant in di.get_variants():
                             uuid = str(variant.uuid)
                             if uuid in images_to_load:

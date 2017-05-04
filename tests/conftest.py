@@ -4,8 +4,59 @@ import time
 import json
 import pytest
 
+from symsynd.images import find_debug_images, ImageLookup
+from symsynd.libdebug import get_cpu_name
+from symsynd.heuristics import find_best_instruction
+from symsynd.utils import parse_addr
+
 
 diff_report = None
+
+
+class ReportSymbolizer(object):
+
+    def __init__(self, driver, dsym_paths, binary_images):
+        self.driver = driver
+        self.images = ImageLookup(binary_images)
+        self.image_paths = find_debug_images(dsym_paths, binary_images)
+
+    def symbolize_backtrace(self, backtrace, meta=None):
+        def symbolize(frame):
+            instr = frame['instruction_addr']
+            img = self.images.find_image(instr)
+            if img is None:
+                return [frame]
+            dsym_path = self.image_paths.get(parse_addr(img['image_addr']))
+            if dsym_path is None:
+                return [frame]
+
+            cpu_name = get_cpu_name(img['cpu_type'], img['cpu_subtype'])
+            if meta is not None:
+                instr = find_best_instruction(instr, cpu_name, meta)
+
+            rv = self.driver.symbolize(dsym_path, img['image_vmaddr'],
+                                       img['image_addr'],
+                                       instr, cpu_name,
+                                       symbolize_inlined=True)
+            if not rv:
+                return [frame]
+
+            result = []
+            for rv in rv:
+                frame = dict(frame)
+                frame['symbol_name'] = rv['symbol']
+                frame['filename'] = rv['abs_path']
+                frame['line'] = rv['lineno']
+                frame['column'] = rv['colno']
+                result.append(frame)
+            return result
+
+        rv = []
+        for idx, f in enumerate(backtrace):
+            if meta is not None:
+                meta['frame_number'] = idx
+            rv.extend(symbolize(f))
+        return rv
 
 
 class DiffReport(object):
@@ -140,3 +191,8 @@ def driver(request):
     rv = Driver()
     request.addfinalizer(rv.close)
     return rv
+
+
+@pytest.fixture(scope='function')
+def make_report_sym(request, driver):
+    return lambda *args: ReportSymbolizer(driver, *args)

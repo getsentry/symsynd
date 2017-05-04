@@ -1,7 +1,6 @@
 import os
 import json
 import pytest
-from symsynd.report import ReportSymbolizer
 
 
 TEST_PARAMETER = [
@@ -19,7 +18,7 @@ def basename(fn):
         return fn.rsplit('/', 1)[-1]
 
 
-def _load_dsyms_and_symbolize_stacktrace(filename, version, build, cpu, res_path, driver):
+def _load_dsyms_and_symbolize_stacktrace(filename, version, build, cpu, res_path, make_report_sym):
     filename_version = version.replace(' ', '')
     path = os.path.join(res_path, 'ext', version, build, cpu, filename)
     if not os.path.isfile(path):
@@ -34,7 +33,7 @@ def _load_dsyms_and_symbolize_stacktrace(filename, version, build, cpu, res_path
         if file.endswith('.dSYM'):
             dsym_paths.append(os.path.join(dsyms_folder, file))
 
-    rep = ReportSymbolizer(driver, dsym_paths, report['debug_meta']['images'])
+    rep = make_report_sym(dsym_paths, report['debug_meta']['images'])
     exc = report['exception']['values'][0]
     stacktrace = exc['stacktrace']
     meta = {}
@@ -44,7 +43,6 @@ def _load_dsyms_and_symbolize_stacktrace(filename, version, build, cpu, res_path
     if 'registers' in stacktrace:
         meta['registers'] = stacktrace['registers']
     bt = rep.symbolize_backtrace(stacktrace['frames'][::-1],
-                                 symbolize_inlined=True,
                                  meta=meta)
     return bt, report
 
@@ -65,14 +63,14 @@ def _test_doCrash_call(bt, index=1):
 
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
-def test_pthread_list_lock_report(res_path, driver, version, build, cpu):
+def test_pthread_list_lock_report(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'Crash with _pthread_list_lock held.json',
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym,
     )
 
     # http://www.crashprobe.com/ios/01/
@@ -80,6 +78,8 @@ def test_pthread_list_lock_report(res_path, driver, version, build, cpu):
     # -[CRLDetailViewController doCrash] (CRLDetailViewController.m:53)
     assert bt is not None
     bt = _filter_system_frames(bt)
+    import pprint
+    pprint.pprint(bt)
     assert bt[0]['symbol_name'] == '-[CRLCrashAsyncSafeThread crash]'
     assert basename(bt[0]['filename']) == 'CRLCrashAsyncSafeThread.m'
     assert bt[0]['line'] == 41
@@ -88,21 +88,21 @@ def test_pthread_list_lock_report(res_path, driver, version, build, cpu):
 
 @pytest.mark.xfail(reason='C++ Exception handling doesn\'t work')
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
-def test_throw_c_pp_exception(res_path, driver, version, build, cpu):
+def test_throw_c_pp_exception(res_path, make_report_sym, version, build, cpu):
     # http://www.crashprobe.com/ios/02/
     # Fails on every crash reporter
     raise Exception('Fails on every crash reporter')
 
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
-def test_throw_objective_c_exception(res_path, driver, version, build, cpu):
+def test_throw_objective_c_exception(res_path, version, build, cpu, make_report_sym):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'Throw Objective-C exception.json',
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
 
     # http://www.crashprobe.com/ios/03/
@@ -118,14 +118,14 @@ def test_throw_objective_c_exception(res_path, driver, version, build, cpu):
 
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
-def test_access_a_non_object_as_an_object(res_path, driver, version, build, cpu):
+def test_access_a_non_object_as_an_object(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'Access a non-object as an object.json',
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
 
     # http://www.crashprobe.com/ios/04/
@@ -140,14 +140,14 @@ def test_access_a_non_object_as_an_object(res_path, driver, version, build, cpu)
 
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
-def test_crash_inside_objc_msg_send(res_path, driver, version, build, cpu):
+def test_crash_inside_objc_msg_send(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'Crash inside objc_msgSend().json',
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
 
     if cpu == 'x86_64':
@@ -165,14 +165,14 @@ def test_crash_inside_objc_msg_send(res_path, driver, version, build, cpu):
 
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
-def test_message_a_released_object(res_path, driver, version, build, cpu):
+def test_message_a_released_object(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'Message a released object.json',
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
 
     if cpu == 'x86_64':
@@ -194,14 +194,14 @@ def test_message_a_released_object(res_path, driver, version, build, cpu):
 
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
-def test_write_to_a_read_only_page(res_path, driver, version, build, cpu):
+def test_write_to_a_read_only_page(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'Write to a read-only page.json',
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
 
     # http://www.crashprobe.com/ios/07/
@@ -216,14 +216,14 @@ def test_write_to_a_read_only_page(res_path, driver, version, build, cpu):
 
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
-def test_execute_a_privileged_instruction(res_path, driver, version, build, cpu):
+def test_execute_a_privileged_instruction(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'Execute a privileged instruction.json',
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
 
     # http://www.crashprobe.com/ios/08/
@@ -246,14 +246,14 @@ def test_execute_a_privileged_instruction(res_path, driver, version, build, cpu)
 
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
-def test_execute_an_undefined_instruction(res_path, driver, version, build, cpu):
+def test_execute_an_undefined_instruction(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'Execute an undefined instruction.json',
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
 
     # http://www.crashprobe.com/ios/09/
@@ -276,14 +276,14 @@ def test_execute_an_undefined_instruction(res_path, driver, version, build, cpu)
 
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
-def test_dereference_a_null_pointer(res_path, driver, version, build, cpu):
+def test_dereference_a_null_pointer(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
     'Dereference a NULL pointer.json',
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
 
     # http://www.crashprobe.com/ios/10/
@@ -298,14 +298,14 @@ def test_dereference_a_null_pointer(res_path, driver, version, build, cpu):
 
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
-def test_dereference_a_bad_pointer(res_path, driver, version, build, cpu):
+def test_dereference_a_bad_pointer(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'Dereference a bad pointer.json',
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
 
     # http://www.crashprobe.com/ios/11/
@@ -323,7 +323,7 @@ def test_dereference_a_bad_pointer(res_path, driver, version, build, cpu):
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
 @pytest.mark.bad_crashprobe
-def test_jump_into_an_nx_page(res_path, driver, version, build, cpu):
+def test_jump_into_an_nx_page(res_path, make_report_sym, version, build, cpu):
     # Note mitsuhiko: this test does not actually do what the text says.
     # Nothing here is jumping to an NX page, instead the compiler will
     # emit a "brk #0x1" for the call to the null pointer function.
@@ -333,7 +333,7 @@ def test_jump_into_an_nx_page(res_path, driver, version, build, cpu):
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
 
     # http://www.crashprobe.com/ios/12/
@@ -358,14 +358,14 @@ def test_jump_into_an_nx_page(res_path, driver, version, build, cpu):
 
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
-def test_stack_overflow(res_path, driver, version, build, cpu):
+def test_stack_overflow(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'Stack overflow.json',
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
 
     # http://www.crashprobe.com/ios/13/
@@ -387,14 +387,14 @@ def test_stack_overflow(res_path, driver, version, build, cpu):
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
 @pytest.mark.bad_crashprobe
-def test_call_builtin_trap(res_path, driver, version, build, cpu):
+def test_call_builtin_trap(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'Call __builtin_trap().json',
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
 
     # http://www.crashprobe.com/ios/14/
@@ -415,14 +415,14 @@ def test_call_builtin_trap(res_path, driver, version, build, cpu):
 
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
-def test_call_abort(res_path, driver, version, build, cpu):
+def test_call_abort(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'Call abort().json',
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
 
     # http://www.crashprobe.com/ios/15/
@@ -437,14 +437,14 @@ def test_call_abort(res_path, driver, version, build, cpu):
 
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
-def test_corrupt_malloc_s_internal_tracking_information(res_path, driver, version, build, cpu):
+def test_corrupt_malloc_s_internal_tracking_information(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         "Corrupt malloc()'s internal tracking information.json",
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
     # http://www.crashprobe.com/ios/16/
     # -[CRLCrashCorruptMalloc crash] (CRLCrashCorruptMalloc.m:46)
@@ -457,14 +457,14 @@ def test_corrupt_malloc_s_internal_tracking_information(res_path, driver, versio
 
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
-def test_corrupt_the_objective_c_runtime_s_structures(res_path, driver, version, build, cpu):
+def test_corrupt_the_objective_c_runtime_s_structures(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         "Corrupt the Objective-C runtime's structures.json",
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
     # http://www.crashprobe.com/ios/17/
     # -[CRLCrashCorruptObjC crash] (CRLCrashCorruptObjC.m:70)
@@ -478,14 +478,14 @@ def test_corrupt_the_objective_c_runtime_s_structures(res_path, driver, version,
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
 @pytest.mark.xfail(reason='KSCrash does not support dwarf unwinding')
-def test_dwarf_unwinding(res_path, driver, version, build, cpu):
+def test_dwarf_unwinding(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'DWARF Unwinding.json',
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
 
     # http://www.crashprobe.com/ios/18/
@@ -507,14 +507,14 @@ def test_dwarf_unwinding(res_path, driver, version, build, cpu):
     _test_doCrash_call(bt)
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
-def test_overwrite_link_register_then_crash(res_path, driver, version, build, cpu):
+def test_overwrite_link_register_then_crash(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'Overwrite link register, then crash.json',
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
 
     # http://www.crashprobe.com/ios/19/
@@ -529,14 +529,14 @@ def test_overwrite_link_register_then_crash(res_path, driver, version, build, cp
 
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
-def test_smash_the_bottom_of_the_stack(res_path, driver, version, build, cpu):
+def test_smash_the_bottom_of_the_stack(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'Smash the bottom of the stack.json',
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
 
     if cpu == 'arm64':
@@ -558,14 +558,14 @@ def test_smash_the_bottom_of_the_stack(res_path, driver, version, build, cpu):
 
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
-def test_smash_the_top_of_the_stack(res_path, driver, version, build, cpu):
+def test_smash_the_top_of_the_stack(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'Smash the top of the stack.json',
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
 
     if cpu == 'arm64':
@@ -585,14 +585,14 @@ def test_smash_the_top_of_the_stack(res_path, driver, version, build, cpu):
 
 @pytest.mark.parametrize("version, build, cpu", TEST_PARAMETER)
 @pytest.mark.bad_crashprobe
-def test_swift(res_path, driver, version, build, cpu):
+def test_swift(res_path, make_report_sym, version, build, cpu):
     bt, report = _load_dsyms_and_symbolize_stacktrace(
         'Swift.json',
         version,
         build,
         cpu,
         res_path,
-        driver
+        make_report_sym
     )
 
     # http://www.crashprobe.com/ios/22/

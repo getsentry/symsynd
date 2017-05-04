@@ -8,12 +8,6 @@ from symsynd.exceptions import SymbolicationError
 from symsynd.libsymbolizer import Symbolizer
 
 
-def qm_to_none(value):
-    if value == '??':
-        return None
-    return value
-
-
 def normalize_dsym_path(p):
     if '\x00' in p or '"' in p or '\n' in p or '\r' in p:
         raise ValueError('Invalid character in dsym path')

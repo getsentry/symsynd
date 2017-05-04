@@ -16,7 +16,7 @@ special_errors = {
 
 
 def str_from_slice(ptr):
-    return str(_ffi.buffer(ptr.s, ptr.len)).decode('utf-8')
+    return bytes(_ffi.buffer(ptr.s, ptr.len)).decode('utf-8')
 
 
 def rustcall(func, *args):

@@ -66,6 +66,12 @@ class Driver(object):
         dsym_path = normalize_dsym_path(dsym_path)
 
         image_vmaddr = parse_addr(image_vmaddr)
+        if not image_vmaddr:
+            di = self._symbolizer.get_debug_info(dsym_path)
+            if di is not None:
+                variant = di.get_variant(cpu_name)
+                if variant is not None:
+                    image_vmaddr = variant.vmaddr
 
         image_addr = parse_addr(image_addr)
         instruction_addr = parse_addr(instruction_addr)

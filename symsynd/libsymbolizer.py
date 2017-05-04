@@ -63,7 +63,7 @@ class Symbolizer(object):
         except Exception:
             pass
 
-    def _get_debug_info(self, dsym_path):
+    def get_debug_info(self, dsym_path):
         rv = self._debug_infos.get(dsym_path)
         if rv is None:
             rv = DebugInfo.open_path(dsym_path)
@@ -78,7 +78,7 @@ class Symbolizer(object):
         filename = None
         abs_path = _symstr(struct.filename)
         if abs_path:
-            di = self._get_debug_info(dsym_path)
+            di = self.get_debug_info(dsym_path)
             comp_dir = di.get_compilation_dir(cpu_name, abs_path)
             if comp_dir and abs_path.startswith(comp_dir):
                 filename = posixpath.relpath(abs_path, comp_dir)

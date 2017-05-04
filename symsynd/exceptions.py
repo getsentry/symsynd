@@ -14,11 +14,11 @@ class SymbolicationError(Exception):
         return self.message
 
 
-class DwarfError(SymbolicationError):
+class DebugInfoError(SymbolicationError):
     pass
 
 
-class DwarfLookupError(DwarfError):
+class DwarfLookupError(DebugInfoError):
     pass
 
 

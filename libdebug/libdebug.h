@@ -22,6 +22,11 @@ typedef struct {
     uint64_t vmsize;
 } debug_variant_t;
 
+typedef struct {
+    int cputype;
+    int cpusubtype;
+} debug_cpu_type_t;
+
 debug_info_t *debug_info_open_path(
     const char *path, debug_error_t *err_out);
 void debug_info_free(debug_info_t *di);
@@ -33,6 +38,8 @@ debug_variant_t *debug_info_get_variants(
 void debug_free_variants(debug_variant_t *variants);
 void debug_buffer_free(void *buf);
 debug_str_slice_t debug_get_cpu_name(int cputype, int cpusubtype,
+    debug_error_t *err_out);
+debug_cpu_type_t debug_get_cpu_type(const char *cpu_name,
     debug_error_t *err_out);
 
 #endif

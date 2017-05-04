@@ -8,7 +8,7 @@ use std::path::Path;
 use std::ffi::{CStr, OsStr};
 use std::os::unix::ffi::OsStrExt;
 use std::os::raw::{c_int, c_char};
-use mach_object::get_arch_name_from_types;
+use mach_object::{get_arch_name_from_types, get_arch_from_flag};
 
 use read::DebugInfo;
 use error::{Error, Result};
@@ -27,6 +27,12 @@ pub struct CError {
 pub struct StrSlice {
     len: usize,
     buf: *const u8,
+}
+
+#[repr(C)]
+pub struct CpuType {
+    cputype: c_int,
+    cpusubtype: c_int,
 }
 
 impl StrSlice {
@@ -177,10 +183,28 @@ export!(
 );
 
 export!(
-    /// Free allocated variants
+    /// Get the CPU name from a type tuple.
     fn debug_get_cpu_name(cputype: c_int, cpusubtype: c_int) -> Result<StrSlice> {
         let arch = get_arch_name_from_types(
             cputype as i32, cpusubtype as i32).ok_or(Error::NoSuchArch)?;
         Ok(StrSlice::new(arch))
+    }
+);
+
+export!(
+    /// Get a type tuple from a CPU name.
+    fn debug_get_cpu_type(cpu_name: *const c_char) -> Result<CpuType> {
+        if_chain! {
+            if let Ok(cpu_name) = CStr::from_ptr(cpu_name).to_str();
+            if let Some(tup) = get_arch_from_flag(cpu_name);
+            then {
+                Ok(CpuType {
+                    cputype: tup.0 as c_int,
+                    cpusubtype: tup.1 as c_int,
+                })
+            } else {
+                Err(Error::NoSuchArch)
+            }
+        }
     }
 );

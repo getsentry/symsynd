@@ -2,8 +2,8 @@ import os
 import errno
 from threading import RLock
 
+from symsynd.libdebug import is_valid_cpu_name
 from symsynd.utils import parse_addr, timedsection
-from symsynd.macho.arch import is_valid_cpu_name
 from symsynd.exceptions import SymbolicationError
 from symsynd.libsymbolizer import Symbolizer
 

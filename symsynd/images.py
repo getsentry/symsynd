@@ -1,7 +1,8 @@
 import os
 import bisect
 
-from symsynd.macho.arch import get_cpu_name, get_macho_uuids
+from symsynd.libdebug import get_cpu_name, DebugInfo
+from symsynd.exceptions import DebugInfoError
 from symsynd.utils import timedsection, parse_addr
 from symsynd._compat import string_types
 
@@ -57,8 +58,13 @@ def find_debug_images(dsym_paths, binary_images):
                         if fn in images:
                             continue
                         full_fn = os.path.join(dwarf_base, fn)
+                        try:
+                            di = DebugInfo.open_path(full_fn)
+                        except DebugInfoError:
+                            continue
                         uuids = get_macho_uuids(full_fn)
-                        for _, uuid in uuids:
+                        for variant in di.get_variants():
+                            uuid = str(variant.uuid)
                             if uuid in images_to_load:
                                 images[uuid] = full_fn
                                 images_to_load.discard(uuid)

@@ -55,6 +55,18 @@ def get_cpu_name(type, subtype):
         pass
 
 
+def get_cpu_type_tuple(name):
+    try:
+        struct = rustcall(_lib.debug_get_cpu_type, to_bytes(name))
+        return (struct.cputype, struct.cpusubtype)
+    except exceptions.NoSuchArch:
+        pass
+
+
+def is_valid_cpu_name(name):
+    return get_cpu_type_tuple(name) is not None
+
+
 class DebugInfo(object):
 
     def __init__(self):

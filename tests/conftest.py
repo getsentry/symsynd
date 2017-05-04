@@ -5,6 +5,7 @@ import json
 import pytest
 
 from symsynd.images import find_debug_images, ImageLookup
+from symsynd.demangle import demangle_symbol
 from symsynd.libdebug import get_cpu_name
 from symsynd.heuristics import find_best_instruction
 from symsynd.utils import parse_addr
@@ -44,7 +45,7 @@ class ReportSymbolizer(object):
             result = []
             for rv in rv:
                 frame = dict(frame)
-                frame['symbol_name'] = rv['symbol']
+                frame['symbol_name'] = demangle_symbol(rv['symbol'])
                 frame['filename'] = rv['abs_path']
                 frame['line'] = rv['lineno']
                 frame['column'] = rv['colno']

@@ -1,6 +1,6 @@
 import os
 from uuid import UUID
-from symsynd.libdebug import DebugInfo, get_cpu_name, get_cpu_type_tuple
+from symsynd import DebugInfo, get_cpu_name, get_cpu_type_tuple
 
 
 def test_cpu_names():

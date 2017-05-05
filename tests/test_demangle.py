@@ -1,4 +1,4 @@
-from symsynd.demangle import demangle_swift_symbol, demangle_cpp_symbol
+from symsynd import demangle_swift_symbol, demangle_cpp_symbol
 
 
 def test_swift_demangle():

@@ -4,11 +4,8 @@ import time
 import json
 import pytest
 
-from symsynd.images import find_debug_images, ImageLookup
-from symsynd.demangle import demangle_symbol
-from symsynd.libdebug import get_cpu_name
-from symsynd.heuristics import find_best_instruction
-from symsynd.utils import parse_addr
+from symsynd import find_debug_images, ImageLookup, demangle_symbol, \
+    get_cpu_name, find_best_instruction, parse_addr
 
 
 diff_report = None

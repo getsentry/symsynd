@@ -16,9 +16,6 @@ from distutils.command.build_py import build_py
 from distutils.command.build_ext import build_ext
 
 
-# If no deployment target is set, export 10.10
-os.environ.setdefault('MACOSX_DEPLOYMENT_TARGET', '10.10')
-
 # Build with clang if not otherwise specified.
 if os.environ.get('SYMSYND_MANYLINUX') == '1':
     os.environ.setdefault('CC', 'gcc')

@@ -18,14 +18,6 @@ check_mac_py() {
   "
 }
 
-# If we are building on OS X just like this we do not need to set a platform
-# target.  We just accept whatever.
-if [ `uname` == "Darwin" ]; then
-  #check_mac_py python
-  #export MACOSX_DEPLOYMENT_TARGET=10.10
-  #WHEEL_OPTIONS="--plat-name=macosx-10.10-intel"
-fi
-
 # Since we do not link against libpython we can just use any of the Pythons
 # on the system to generate a while (UCS2/UCS4 does not matter).  The dockerfile
 # enables one of them already so we go with that.
@@ -53,6 +45,8 @@ elif [ x$SYMSYND_MACWHEELS == x1 ]; then
   fi
 
   mkdir -p .build-venvs
+  export MACOSX_DEPLOYMENT_TARGET=10.10
+  WHEEL_OPTIONS="--plat-name=macosx-10.10-intel"
 
   for pyver in 2.7; do
     pybin="/System/Library/Frameworks/Python.framework/Versions/$pyver/bin"

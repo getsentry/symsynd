@@ -4,7 +4,7 @@ import bisect
 from symsynd.libdebug import get_cpu_name, DebugInfo
 from symsynd.exceptions import DebugInfoError
 from symsynd.utils import timedsection, parse_addr
-from symsynd._compat import string_types
+from symsynd._compat import string_types, itervalues
 
 
 def get_image_cpu_name(image):
@@ -97,7 +97,7 @@ class ImageLookup(object):
         self._image_addresses.sort()
 
     def iter_images(self):
-        return six.itervalues(self.images)
+        return itervalues(self.images)
 
     def get_uuids(self):
         return list(self.iter_uuids())

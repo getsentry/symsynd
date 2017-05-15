@@ -80,7 +80,7 @@ if bdist_wheel is not None:
 
 setup(
     name='symsynd',
-    version='3.0.0',
+    version='3.1.0',
     url='http://github.com/getsentry/symsynd',
     description='Helps symbolicating crash dumps.',
     license='BSD',

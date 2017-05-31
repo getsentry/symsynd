@@ -25,7 +25,7 @@ def rustcall(func, *args):
     if not err[0].failed:
         return rv
     try:
-        cls = special_errors.get(err[0].code, exceptions.DwarfError)
+        cls = special_errors.get(err[0].code, exceptions.DebugInfoError)
         exc = cls(_ffi.string(err[0].message).decode('utf-8', 'replace'))
     finally:
         _lib.debug_buffer_free(err[0].message)

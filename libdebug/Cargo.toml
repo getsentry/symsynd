@@ -10,6 +10,6 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 gimli = "0.13.0"
 memmap = "0"
-uuid = "0.4"
-mach_object = "0.1.4"
+uuid = "0.5"
+mach_object = "0.1.5"
 if_chain = "^0.1.2"
